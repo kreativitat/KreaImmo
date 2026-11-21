@@ -34,4 +34,6 @@ Production acceptance also covers native company activation, installed source ha
 
 Internal PHP and JavaScript identifiers use English. Persisted database fields and inherited Dolibarr properties retain their native names. Integration checks also verify computed property, renter and receipt labels after alias renaming.
 
-The English variable cleanup passes all 101 standalone integration checks, including payment/receipt label readback and foreign-company denial. Database fields, request keys, native PDF layout properties and documented renter API fields retain their existing names.
+The English variable cleanup passes all 114 standalone integration checks, including payment/receipt label readback and foreign-company denial. Database fields, request keys, native PDF layout properties and documented renter API fields retain their existing names.
+
+Native mailing-selector discovery and recipient selection are covered by 13 regression checks: scoped recipients, permissions, current-company mailing ownership, status/filter validation, retry deduplication and rollback. These checks select synthetic recipients and never send mail.

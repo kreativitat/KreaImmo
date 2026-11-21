@@ -30,6 +30,7 @@ $conf->db->dolibarr_main_db_collation = 'utf8_unicode_ci';
 $conf->file->dol_document_root = array('main' => DOL_DOCUMENT_ROOT, 'alt0' => DOL_DOCUMENT_ROOT.'/custom');
 $conf->file->dol_url_root = array('main' => '', 'alt0' => '/custom');
 $conf->file->dol_main_url_root = DOL_MAIN_URL_ROOT;
+$conf->file->instance_unique_id = 'kreaimmo-disposable-integration';
 $conf->global->MAIN_FEATURES_LEVEL = 2;
 $conf->global->MAIN_LANG_DEFAULT = 'en_US';
 $conf->global->MAIN_MONNAIE = 'EUR';
@@ -98,6 +99,9 @@ kreaimmoFixtureQuery("INSERT IGNORE INTO llx_user(rowid,entity,login,lastname,ad
 
 foreach (array('/core/lib/admin.lib.php', '/core/lib/functions2.lib.php', '/core/lib/security.lib.php', '/user/class/user.class.php', '/societe/class/societe.class.php', '/core/class/html.form.class.php', '/core/class/hookmanager.class.php') as $include) {
 	require_once DOL_DOCUMENT_ROOT.$include;
+}
+if (run_sql(DOL_DOCUMENT_ROOT.'/install/mysql/tables/llx_mailing_cibles-mailing.key.sql', 1, (int) $conf->entity, 0) <= 0) {
+	throw new RuntimeException('Cannot install native disposable mailing recipient indexes');
 }
 $user = new User($db);
 if ($user->fetch(1) <= 0) {

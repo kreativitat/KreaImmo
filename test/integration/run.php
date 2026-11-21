@@ -150,6 +150,181 @@ function qaCostTypeSnapshot()
 	return $rows;
 }
 
+function qaMailingActor($renterRead = 1, $nativeRead = 1, $nativeWrite = 1)
+{
+	$actor = qaUser($renterRead);
+	$actor->rights->mailing = (object) array('lire' => $nativeRead, 'creer' => $nativeWrite);
+	return $actor;
+}
+
+function qaMailingRows($mailingId = null)
+{
+	global $db;
+	$sql = 'SELECT * FROM '.MAIN_DB_PREFIX.'mailing_cibles';
+	if ($mailingId !== null) {
+		$sql .= ' WHERE fk_mailing='.(int) $mailingId;
+	}
+	$result = qaQuery($sql.' ORDER BY rowid');
+	$rows = array();
+	while ($row = $db->fetch_array($result)) {
+		$rows[] = $row;
+	}
+	return $rows;
+}
+
+function qaMailingChecks()
+{
+	global $db, $conf, $user, $now, $run;
+	$originalActor = $user;
+	$originalEntity = $conf->entity;
+	$originalModules = $conf->modules;
+	$originalGet = $_GET;
+	$originalPost = $_POST;
+	$mailings = array();
+	$renters = array();
+	$selectorClass = 'mailing_mailinglist_kreaimmo_immorenter';
+	try {
+		$conf->modules['kreaimmo'] = 'kreaimmo';
+		$conf->modules['mailing'] = 'mailing';
+		$_GET['filter'] = $_POST['filter'] = 'none';
+		qaCheck('mailing fixtures create native drafts in two companies without sending', function () use (&$mailings, &$renters) {
+			global $db, $conf, $user, $now, $run;
+			foreach (array(2, 3) as $entity) {
+				$conf->entity = $entity;
+				$user = qaMailingActor();
+				$renters[$entity] = qaCreate(qaNew('KreaImmoRenter', array('firstname' => 'Mailing', 'lastname' => 'Synthetic company '.$entity, 'email' => strtolower($run).'-'.$entity.'@example.invalid', 'civility_id' => 1, 'birth' => $now, 'status' => 1)));
+				$draft = new Mailing($db);
+				$draft->title = $run.' synthetic draft '.$entity;
+				$draft->sujet = 'Synthetic recipient selection';
+				$draft->body = 'Integration fixture only.';
+				$draft->email_from = 'fixture@example.invalid';
+				$draft->messtype = 'email';
+				$draft->evenunsubscribe = 0;
+				qaAssert($draft->create($user, true) > 0, 'Native mailing create failed: '.$draft->error);
+				$mailings[$entity] = $draft;
+			}
+		});
+		$conf->entity = 2;
+		$user = qaMailingActor();
+		if (!isset($mailings[2], $mailings[3], $renters[2], $renters[3])) {
+			return;
+		}
+		qaCheck('mailing selector counts and persists only own-company recipient data', function () use ($selectorClass, $mailings, $renters) {
+			global $db;
+			$selector = new $selectorClass($db);
+			$count = $selector->getNbOfRecipients();
+			qaAssert($count === 2, 'Recipient count must include only the two current-company addresses');
+			qaAssert($selector->add_to_target($mailings[2]->id) === $count, 'Native recipient insertion failed: '.$selector->error);
+			$rows = qaMailingRows($mailings[2]->id);
+			qaAssert(count($rows) === $count && qaMailingRows($mailings[3]->id) === array(), 'Recipient selection modified the wrong mailing');
+			$ownAddressFound = false;
+			foreach ($rows as $row) {
+				$result = qaQuery('SELECT entity, firstname, lastname, email FROM '.MAIN_DB_PREFIX.'kreaimmo_immorenter WHERE rowid='.(int) $row['source_id']);
+				$renter = $db->fetch_object($result);
+				qaAssert($renter && (int) $renter->entity === 2, 'Recipient source belongs to another company');
+				qaAssert($row['lastname'] === $renter->lastname && $row['firstname'] === $renter->firstname && $row['email'] === $renter->email, 'Native recipient keys lost renter identity data');
+				qaAssert($row['other'] === '' && $row['source_type'] === 'kreaimmo_immorenter', 'Invalid native recipient metadata');
+				qaAssert(strpos($row['source_url'], '/kreaimmo/renter/immorenter_card.php') !== false && strpos($row['source_url'], 'id='.(int) $row['source_id']) !== false, 'Recipient source link is invalid');
+				qaAssert(!empty($row['tag']) && (int) $row['statut'] === 0 && empty($row['date_envoi']), 'Recipient was sent or lacks its native unsubscribe tag');
+				qaAssert($row['email'] !== $renters[3]->email, 'Foreign-company address leaked into a mailing');
+				$ownAddressFound = $ownAddressFound || $row['email'] === $renters[2]->email;
+			}
+			qaAssert($ownAddressFound, 'Current-company unique address was omitted');
+			$draft = new Mailing($db);
+			qaAssert($draft->fetch($mailings[2]->id) > 0 && (int) $draft->nbemail === $count && (int) $draft->status === Mailing::STATUS_DRAFT && empty($draft->date_envoi), 'Selection changed delivery state or failed to update the native recipient count');
+		});
+		qaCheck('mailing selector follows native statuses and deduplicates recipient retries', function () use ($selectorClass, $mailings) {
+			global $db;
+			$before = qaMailingRows();
+			try {
+				foreach (array(Mailing::STATUS_DRAFT, Mailing::STATUS_VALIDATED, Mailing::STATUS_SENTPARTIALY, Mailing::STATUS_SENTCOMPLETELY) as $status) {
+					qaQuery('UPDATE '.MAIN_DB_PREFIX.'mailing SET statut='.(int) $status.' WHERE rowid='.(int) $mailings[2]->id);
+					$selector = new $selectorClass($db);
+					qaAssert($selector->add_to_target($mailings[2]->id) === 0, 'Native allowed status rejected or retry duplicated recipients');
+					qaAssert(qaMailingRows() === $before, 'Retry changed existing recipient rows');
+				}
+				qaQuery('UPDATE '.MAIN_DB_PREFIX.'mailing SET statut=99 WHERE rowid='.(int) $mailings[2]->id);
+				qaAssert((new $selectorClass($db))->add_to_target($mailings[2]->id) < 0, 'Unknown mailing state accepted');
+				qaAssert(qaMailingRows() === $before, 'Denied unknown-state selection changed recipients');
+			} finally {
+				qaQuery('UPDATE '.MAIN_DB_PREFIX.'mailing SET statut=0 WHERE rowid='.(int) $mailings[2]->id);
+			}
+		});
+		qaCheck('mailing selector denies guessed foreign mailing IDs', function () use ($selectorClass, $mailings) {
+			global $db;
+			$before = qaMailingRows();
+			$selector = new $selectorClass($db);
+			qaAssert($selector->add_to_target($mailings[3]->id) < 0 && $selector->error === 'KreaImmoAccessDenied', 'Foreign mailing accepted recipients');
+			qaAssert(qaMailingRows() === $before, 'Foreign-mailing denial changed recipients');
+		});
+		foreach (array('renter read' => array(0, 1, 1), 'native mailing read' => array(1, 0, 1), 'native mailing write' => array(1, 1, 0)) as $permission => $grants) {
+			qaCheck('mailing selector enforces '.$permission.' permission', function () use ($selectorClass, $mailings, $grants) {
+				global $db, $user;
+				$user = qaMailingActor($grants[0], $grants[1], $grants[2]);
+				$before = qaMailingRows();
+				$selector = new $selectorClass($db);
+				qaAssert($selector->add_to_target($mailings[2]->id) < 0 && $selector->error === 'KreaImmoAccessDenied', 'Missing mailing permission did not deny selection');
+				qaAssert(($selector->getNbOfRecipients() >= 0) === (bool) ($grants[0] && $grants[1]), 'Recipient count does not enforce read permissions independently of write');
+				qaAssert(qaMailingRows() === $before, 'Denied mailing write changed recipients');
+			});
+		}
+		qaCheck('mailing selector denies external and unauthenticated users', function () use ($selectorClass, $mailings) {
+			global $db, $user;
+			$before = qaMailingRows();
+			foreach (array('external', 'unauthenticated') as $type) {
+				$user = qaMailingActor();
+				if ($type === 'external') {
+					$user->socid = $user->societe_id = 999;
+				} else {
+					$user->id = 0;
+				}
+				$selector = new $selectorClass($db);
+				qaAssert(!$selector->enabled && $selector->getNbOfRecipients() < 0 && $selector->add_to_target($mailings[2]->id) < 0, 'Restricted user can use the mailing selector');
+			}
+			qaAssert(qaMailingRows() === $before, 'Restricted-user selection changed recipients');
+		});
+		foreach (array('kreaimmo', 'mailing') as $module) {
+			qaCheck('mailing selector denies inactive '.$module.' module', function () use ($selectorClass, $mailings, $module) {
+				global $db, $user, $conf;
+				$user = qaMailingActor();
+				$modules = $conf->modules;
+				$before = qaMailingRows();
+				try {
+					foreach ($conf->modules as $key => $value) {
+						if ($key === $module || $value === $module) {
+							unset($conf->modules[$key]);
+						}
+					}
+					$selector = new $selectorClass($db);
+					qaAssert(!$selector->enabled && $selector->getNbOfRecipients() < 0 && $selector->add_to_target($mailings[2]->id) < 0, 'Inactive module allows mailing selection');
+					qaAssert(qaMailingRows() === $before, 'Inactive-module selection changed recipients');
+				} finally {
+					$conf->modules = $modules;
+				}
+			});
+		}
+		qaCheck('mailing selector validates status filters and preserves scoped counts', function () use ($selectorClass, $mailings) {
+			global $db, $user;
+			$user = qaMailingActor();
+			$before = qaMailingRows();
+			$_GET['filter'] = $_POST['filter'] = '1';
+			qaAssert((new $selectorClass($db))->getNbOfRecipients() === 1, 'Active-renter filter does not retain company scope');
+			foreach (array('invalid', array('1')) as $filter) {
+				$_GET['filter'] = $_POST['filter'] = $filter;
+				$selector = new $selectorClass($db);
+				qaAssert($selector->getNbOfRecipients() < 0 && $selector->add_to_target($mailings[2]->id) < 0, 'Malformed filter accepted');
+			}
+			qaAssert(qaMailingRows() === $before, 'Malformed filter changed recipients');
+		});
+	} finally {
+		$conf->entity = $originalEntity;
+		$conf->modules = $originalModules;
+		$user = $originalActor;
+		$_GET = $originalGet;
+		$_POST = $originalPost;
+	}
+}
+
 function qaRestError($status, callable $action)
 {
 	try {
@@ -271,11 +446,43 @@ qaCheck('entity hook shares reference dictionaries while retaining business owne
 		qaAssert($hook->hookGetEntity(array('element' => $element), $object, $action, $hookmanager) === 0 && $hook->resprints === '', 'Business entity sharing overridden or stale dictionary result retained');
 	}
 });
+qaCheck('native mailing discovery instantiates the adapter while inactive', function () {
+	global $db, $conf, $user;
+	$directory = dirname(__DIR__, 2).'/core/modules/mailings';
+	qaAssert(is_file($directory.'/mailinglist_kreaimmo_immorenter.modules.php'), 'Expected discoverable mailing adapter is missing');
+	qaAssert(!is_file($directory.'/mailinglist_immobilier_immorenter.modules.php'), 'Legacy filename still exposes a mismatched mailing class');
+	$modules = $conf->modules;
+	$actor = $user;
+	$entity = $conf->entity;
+	try {
+		unset($conf->modules['kreaimmo'], $conf->modules['mailing']);
+		foreach (glob($directory.'/*.modules.php') as $file) {
+			$class = 'mailing_'.basename($file, '.modules.php');
+			require_once $file;
+			qaAssert(class_exists($class, false), 'Native filename-to-class discovery cannot load '.$class);
+			foreach (array(2, 3) as $company) {
+				$conf->entity = $company;
+				$user = qaMailingActor();
+				$selector = new $class($db);
+				qaAssert($selector instanceof MailingTargets && !$selector->enabled, 'Inactive selector discovery failed');
+			}
+		}
+	} finally {
+		$conf->modules = $modules;
+		$conf->entity = $entity;
+		$user = $actor;
+	}
+});
 
 $baseline = array();
 foreach (array('immoowner', 'immoproperty', 'immorenter', 'immorent', 'immoreceipt', 'immocost', 'immocompteur', 'immopayment') as $table) {
 	$result = qaQuery('SELECT COUNT(*) AS total FROM '.MAIN_DB_PREFIX.'kreaimmo_'.$table);
 	$baseline[$table] = (int) $db->fetch_object($result)->total;
+}
+$mailingBaseline = array();
+foreach (array('mailing', 'mailing_cibles') as $table) {
+	$result = qaQuery('SELECT COUNT(*) AS total FROM '.MAIN_DB_PREFIX.$table);
+	$mailingBaseline[$table] = (int) $db->fetch_object($result)->total;
 }
 qaAssert($db->begin('KreaImmo synthetic integration suite') > 0, 'Cannot begin fixture transaction');
 try {
@@ -588,6 +795,7 @@ try {
 			DolibarrApiAccess::$user = qaUser();
 			qaAssert($other->delete($user, true) > 0, 'Cannot delete synthetic second renter');
 		});
+		qaMailingChecks();
 		$aux = array();
 		qaCheck('auxiliary object chains create in both companies', function () use (&$aux) {
 			$aux[2] = qaAuxChain(2);
@@ -741,6 +949,13 @@ qaCheck('suite rollback preserves all original object counts', function () use (
 	foreach ($baseline as $table => $expected) {
 		$result = qaQuery('SELECT COUNT(*) AS total FROM '.MAIN_DB_PREFIX.'kreaimmo_'.$table);
 		qaAssert((int) $db->fetch_object($result)->total === $expected, 'Fixture cleanup changed '.$table.' row count');
+	}
+});
+qaCheck('mailing fixture rollback preserves original draft and recipient counts', function () use ($mailingBaseline) {
+	global $db;
+	foreach ($mailingBaseline as $table => $expected) {
+		$result = qaQuery('SELECT COUNT(*) AS total FROM '.MAIN_DB_PREFIX.$table);
+		qaAssert((int) $db->fetch_object($result)->total === $expected, 'Mailing fixture cleanup changed '.$table.' row count');
 	}
 });
 
