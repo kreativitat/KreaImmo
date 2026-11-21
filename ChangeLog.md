@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [1.1.1] - 2026-11-21
+
+- Use native Restler-compatible public parameter and return annotations while retaining detailed static-analysis types. Omitted optional filters still default to null; strict handler validation is unchanged.
+- Exercise the installed Restler parameter validator and Swagger serialization in the disposable regression suite.
+
 ## [1.1.0] - 2026-11-21
 
 - Add authenticated, exact-company read APIs for owners, buildings, properties,

@@ -1,6 +1,6 @@
 # KreaImmo validation
 
-Validation date: 2026-11-21. Module version: 1.1.0, module ID 156571.
+Validation date: 2026-11-21. Module version: 1.1.1, module ID 156571.
 
 ## API and MCP management acceptance — 2026-11-21
 

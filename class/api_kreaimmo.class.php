@@ -57,12 +57,13 @@ class KreaImmoApi extends DolibarrApi
 	 * @param string $resource Resource name documented in doc/API.md
 	 * @param int $limit Maximum rows, from 1 to 200
 	 * @param int $page Zero-based page, from 0 to 1000
-	 * @param string|null $ref Exact reference, where supported
-	 * @param int|null $property_id Direct property relationship
-	 * @param int|null $renter_id Direct renter relationship
-	 * @param int|null $lease_id Direct lease relationship
-	 * @param int|null $owner_id Direct owner relationship
-	 * @return array<string,mixed> Versioned evidence envelope
+	 * @param string $ref Optional exact reference; omitted defaults to null
+	 * @param int $property_id Optional direct property relationship
+	 * @param int $renter_id Optional direct renter relationship
+	 * @param int $lease_id Optional direct lease relationship
+	 * @param int $owner_id Optional direct owner relationship
+	 * @return array Versioned evidence envelope
+	 * @phpstan-return array<string,mixed>
 	 * @url GET records/{resource}
 	 */
 	public function getRecords($resource, $limit = 100, $page = 0, $ref = null, $property_id = null, $renter_id = null, $lease_id = null, $owner_id = null)
@@ -107,7 +108,8 @@ class KreaImmoApi extends DolibarrApi
 	 *
 	 * @param string $resource Resource name documented in doc/API.md
 	 * @param int $id Positive record ID
-	 * @return array<string,mixed> Versioned evidence envelope
+	 * @return array Versioned evidence envelope
+	 * @phpstan-return array<string,mixed>
 	 * @url GET records/{resource}/{id}
 	 */
 	public function getRecord($resource, $id)
@@ -128,7 +130,8 @@ class KreaImmoApi extends DolibarrApi
 	 *
 	 * @param string $resource Public real-estate resource
 	 * @param array $request_data Operation, fields and preview safeguards
-	 * @return array<string,mixed> Versioned management result
+	 * @return array Versioned management result
+	 * @phpstan-return array<string,mixed>
 	 * @url POST manage/{resource}
 	 */
 	public function manageRecord($resource, $request_data = null)

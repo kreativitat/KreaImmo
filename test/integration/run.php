@@ -782,6 +782,35 @@ qaCheck('descriptor uses registered module and permission IDs', function () {
 	}
 	qaAssert(count($ids) > 0, 'No permissions declared');
 });
+qaCheck('native Restler validates omitted and typed optional query parameters', function () {
+	$restler = new Luracast\Restler\Restler(false);
+	$restler->responseFormat = new Luracast\Restler\Format\JsonFormat();
+	Luracast\Restler\Routes::addAPIClass('KreaImmoApi', Luracast\Restler\Util::getResourcePath('KreaImmoApi', null), 1);
+	$cases = array(
+		array('kreaimmoapi/records/renters', array(), array(0 => 'renters', 1 => 100, 2 => 0, 3 => null, 4 => null, 5 => null, 6 => null, 7 => null)),
+		array('kreaimmoapi/records/payments', array('limit' => '2', 'page' => '0', 'ref' => 'QA-EXACT', 'property_id' => '7', 'renter_id' => '8', 'lease_id' => '9', 'owner_id' => '10'), array(0 => 'payments', 1 => 2, 2 => 0, 3 => 'QA-EXACT', 4 => 7, 5 => 8, 6 => 9, 7 => 10)),
+	);
+	foreach ($cases as $case) {
+		$route = Luracast\Restler\Routes::find($case[0], 'GET', 1, $case[1]);
+		qaAssert($route->className === 'KreaImmoApi' && $route->methodName === 'getRecords' && $route->accessLevel >= 2, 'Protected native route metadata changed');
+		foreach ($route->metadata['param'] as $index => $parameter) {
+			$info = new Luracast\Restler\Data\ValidationInfo($parameter);
+			$actual = Luracast\Restler\Data\Validator::validate($route->parameters[$index], $info);
+			qaAssert($actual === $case[2][$index], 'Native request validation changed an optional or typed query parameter');
+		}
+	}
+});
+qaCheck('native Restler serializes new API return metadata for Swagger', function () {
+	$explorer = new Luracast\Restler\Explorer();
+	$responses = new ReflectionMethod($explorer, 'responses');
+	$responses->setAccessible(true);
+	foreach (array(array('kreaimmoapi/records/renters', 'GET'), array('kreaimmoapi/records/renters/17', 'GET'), array('kreaimmoapi/manage/renters', 'POST')) as $case) {
+		$route = Luracast\Restler\Routes::find($case[0], $case[1], 1, array());
+		qaAssert($route->metadata['return']['type'] === 'array', 'API public return type is not compatible with native Restler');
+		$schema = $responses->invoke($explorer, array('metadata' => $route->metadata));
+		qaAssert($schema['200']->schema->type === 'array' && json_encode($schema) !== false, 'Native Swagger return schema failed serialization');
+	}
+});
 if (isset($kreaimmoIntegrationBootstrap)) {
 	qaCheck('native module installation replay preserves existing records', function () use ($kreaimmoIntegrationBootstrap) {
 		qaAssert($kreaimmoIntegrationBootstrap['module_install'] > 0 && $kreaimmoIntegrationBootstrap['module_replay'] > 0, 'Native installation failed');
