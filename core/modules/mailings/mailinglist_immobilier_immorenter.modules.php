@@ -100,7 +100,7 @@ class mailing_mailinglist_KreaImmo_immorenter extends MailingTargets
 	function add_to_target($mailing_id,$filtersarray=array())
 	{
 		$target = array();
-		$cibles = array();
+		$recipientTargets = array();
 		$j = 0;
 
 
@@ -125,7 +125,7 @@ class mailing_mailinglist_KreaImmo_immorenter extends MailingTargets
 				$obj = $this->db->fetch_object($result);
 				if ($old <> $obj->email)
 				{
-					$cibles[$j] = array(
+					$recipientTargets[$j] = array(
 						'email' => $obj->email,
 						'name' => $obj->lastname,
 						'id' => $obj->id,
@@ -157,7 +157,7 @@ class mailing_mailinglist_KreaImmo_immorenter extends MailingTargets
 
 		// ----- Your code end here -----
 
-		return parent::add_to_target($mailing_id, $cibles);
+		return parent::add_to_target($mailing_id, $recipientTargets);
 	}
 
 
