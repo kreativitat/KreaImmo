@@ -99,7 +99,7 @@ foreach( $months_list as $month_name )
 
 print '<td align="right"><b>'.$langs->trans("Total").'</b></td></tr>';
 
-$sql = 'SELECT ii.label AS nom_immeuble';
+$sql = 'SELECT ii.label AS building_label';
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(lo.date_echeance)='.$month_num.' then lo.chargesamount else 0 end),2) AS month_'.$month_num;
@@ -157,7 +157,7 @@ foreach( $months_list as $month_name )
 print '<td align="right"><b>'.$langs->trans("Total").'</b></td></tr>';
 
 
-$sql = "SELECT ii.label AS nom_immeuble";
+$sql = "SELECT ii.label AS building_label";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(ic.date_start)='.$month_num.' then ic.amount else 0 end),2) AS month_'.$month_num;
@@ -225,7 +225,7 @@ foreach( $months_list as $month_name )
 print '<td align="right"><b>'.$langs->trans("Total").'</b></td></tr>';
 
 
-$sql = "SELECT CONCAT(irer.firstname, ' ', irer.lastname) AS nom_locataire";
+$sql = "SELECT CONCAT(irer.firstname, ' ', irer.lastname) AS renter_name";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(ic.date_start)='.$month_num.' then ic.amount else 0 end),2) AS month_'.$month_num;
@@ -281,7 +281,7 @@ print '</tr>';
 
 $value_array=array();
 
-$sql = "SELECT ii.label AS nom_immeuble";
+$sql = "SELECT ii.label AS building_label";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(lo.date_echeance)='.$month_num.' then lo.chargesamount else 0 end),2) AS month_'.$month_num;
@@ -296,9 +296,9 @@ $sql .= "  AND lo.fk_property = ll.rowid AND ll.fk_property = ii.fk_property ";
 //$sql .= "  AND lo.paye = 1 ";
 $sql .= " GROUP BY  ii.label";
 
-$resqlencaissement = $db->query ( $sql );
+$receiptQueryResult = $db->query ( $sql );
 
-$sql = "SELECT ii.label AS nom_immeuble";
+$sql = "SELECT ii.label AS building_label";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(ic.date_start)='.$month_num.' then ic.amount else 0 end),2) AS month_'.$month_num;
@@ -318,27 +318,27 @@ if (!empty($typeCostRenterProperty2)) {
 $sql .= "  AND ic.fk_property = ll.rowid AND ll.fk_property = ii.fk_property ";
 $sql .= " GROUP BY  ii.label";
 
-$resqlpaiement = $db->query ( $sql );
-if ($resqlpaiement && $resqlencaissement)
+$costQueryResult = $db->query ( $sql );
+if ($costQueryResult && $receiptQueryResult)
 {
 	$i = 0;
-	$num = max($db->num_rows ( $resqlencaissement ), $db->num_rows ( $resqlpaiement ));
+	$num = max($db->num_rows ( $receiptQueryResult ), $db->num_rows ( $costQueryResult ));
 
 	while ( $i < $num )
 	{
-		$rowencaissement = $db->fetch_row ( $resqlencaissement );
-		$rowpaiement = $db->fetch_row ( $resqlpaiement );
+		$receiptRow = $db->fetch_row ( $receiptQueryResult );
+		$costRow = $db->fetch_row ( $costQueryResult );
 
-		$value_array[$rowencaissement [0]][0] =  $rowencaissement [0];
-		$value_array[$rowencaissement [0]][13] =  0;
+		$value_array[$receiptRow [0]][0] =  $receiptRow [0];
+		$value_array[$receiptRow [0]][13] =  0;
 		for ($j = 1; $j <= 12; $j++)
 		{
-			$value_array[$rowencaissement [0]][$j] = ($rowencaissement [$j] - $rowpaiement [$j]);
+			$value_array[$receiptRow [0]][$j] = ($receiptRow [$j] - $costRow [$j]);
 		}
 		$i ++;
 	}
-	$db->free ( $resqlencaissement );
-	$db->free ( $resqlpaiement );
+	$db->free ( $receiptQueryResult );
+	$db->free ( $costQueryResult );
 }
 else
 {

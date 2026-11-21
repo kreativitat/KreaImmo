@@ -69,7 +69,7 @@ dol_include_once('/kreaimmo/class/html.formkreaimmo.class.php');
 $langs->loadLangs(array("kreaimmo@kreaimmo", "other", "bills"));
 
 $object = new KreaImmoCompteur($db);
-$compteur_type=new KreaImmoCompteur_Type($db);
+$meterType=new KreaImmoCompteur_Type($db);
 $properties = new KreaImmoProperty($db);
 $form = new Form($db);
 $formImmo = new FormKreaImmo($db);
@@ -86,9 +86,9 @@ if (GETPOSTISSET('search_compteur_type_id') && GETPOST('search_compteur_type_id'
 	$search['compteur_type_id'] = GETPOST('search_compteur_type_id', 'int');
 } else {
 	$search['compteur_type_id']=1;
-	$res=$compteur_type->fetchAll('','',0,0,array('active'=>1));
+	$res=$meterType->fetchAll('','',0,0,array('active'=>1));
 	if (!is_array($res) && $res<0) {
-		setEventMessages($compteur_type->error,$compteur_type->errors,'errors');
+		setEventMessages($meterType->error,$meterType->errors,'errors');
 	}else {
 		$search['compteur_type_id']=reset($res)->id;
 	}
@@ -131,7 +131,7 @@ print '<table class="tagtable nobottomiftotal liste">'."\n";
 
 $sql = 'SELECT ';
 $sql .= $object->getFieldList('t');
-$sql .= ',ict.label as label_compteur';
+$sql .= ',ict.label as meter_label';
 $sql .= " FROM ".MAIN_DB_PREFIX.$object->table_element." as t";
 $sql .= " INNER JOIN ".MAIN_DB_PREFIX."c_kreaimmo_immocompteur_type as ict ON ict.rowid=t.compteur_type_id";
 $sql .= ' WHERE '.$object->getKreaImmoScopeSQL('t');

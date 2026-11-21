@@ -112,8 +112,8 @@ llxHeaderKreaImmoPublic();
         const errorModal = document.getElementById("errorModal");
         let bsModalError = new bootstrap.Modal(errorModal);
 
-        const inputCompteurModal = document.getElementById('inputCompteurModal');
-        const bsinputCompteurModal = new bootstrap.Modal(inputCompteurModal);
+        const inputMeterModal = document.getElementById('inputCompteurModal');
+        const meterInputModal = new bootstrap.Modal(inputMeterModal);
         $('#validCounter').click(function () {
             bsModalLoading.show();
             $.ajax({
@@ -129,7 +129,7 @@ llxHeaderKreaImmoPublic();
             }).done(function (response) {
                 location.reload();
             }).fail(function (response) {
-                bsinputCompteurModal.hide();
+                meterInputModal.hide();
                 console.log("Error in ajax call");
                 console.log(response);
                 setTimeout(function () {
@@ -174,9 +174,9 @@ $renterId = 0;
         }
     }
 
-    $sql                = "SELECT DISTINCT rec.rowid as reference, rec.label as receiptname,rec.ref as receiptref, loc.lastname as nom, ";
-    $sql                .= " prop.address, prop.label as local, loc.status as status, rec.total_amount as total, rec.partial_payment, ";
-    $sql                .= " rec.balance, rec.fk_renter as reflocataire, rec.fk_property as reflocal, rec.fk_owner,";
+    $sql                = "SELECT DISTINCT rec.rowid as reference, rec.label as receiptname,rec.ref as receiptref, loc.lastname as renter_name, ";
+    $sql                .= " prop.address, prop.label as property_label, loc.status as status, rec.total_amount as total, rec.partial_payment, ";
+    $sql                .= " rec.balance, rec.fk_renter as renter_id, rec.fk_property as property_id, rec.fk_owner,";
     $sql                .= " rec.fk_rent as refcontract, rent.preavis,";
     $sql                .= " rec.date_echeance, rent.preavis";
     $sql                .= " ,prop.rowid as propid";
@@ -205,13 +205,13 @@ $renterId = 0;
                 }
 
                 $datas[$objp->reference]['date_echeance']   = $objp->date_echeance;
-                $datas[$objp->reference]['local']           = $objp->local;
+                $datas[$objp->reference]['property_label']           = $objp->property_label;
                 $datas[$objp->reference]['total']           = $objp->total;
                 $datas[$objp->reference]['partial_payment'] = $objp->partial_payment;
                 $datas[$objp->reference]['balance']         = $objp->balance;
                 $datas[$objp->reference]['receiptref']      = $objp->receiptref;
                 $datas[$objp->reference]['urldlfile']       = $urldlfile;
-                $resultDataProperty[$objp->propid]          = $objp->local;
+                $resultDataProperty[$objp->propid]          = $objp->property_label;
 
                 $totalBalance += (float) $objp->balance;
             }
@@ -220,20 +220,20 @@ $renterId = 0;
 
     if (!empty($datas)) {
         dol_include_once('/kreaimmo/class/kreaimmocompteur.class.php');
-        $compteur           = new KreaImmoCompteur($db);
+        $meter           = new KreaImmoCompteur($db);
         $sql                = 'SELECT ';
-        $sql                .= $compteur->getFieldList('compteur');
-        $sql                .= ',prop.label as local, ict.label as label_compteur, ict.rowid as typecounterid, YEAR(compteur.date_relever) as yearrelever';
+        $sql                .= $meter->getFieldList('meter');
+        $sql                .= ',prop.label as property_label, ict.label as meter_label, ict.rowid as typecounterid, YEAR(meter.date_relever) as reading_year';
         $sql                .= " FROM " . MAIN_DB_PREFIX . "kreaimmo_immoreceipt as rec";
         $sql                .= " INNER JOIN " . MAIN_DB_PREFIX . "kreaimmo_immorenter as loc ON loc.rowid = rec.fk_renter AND loc.rowid=" . (int) $renterId;
         $sql                .= " INNER JOIN " . MAIN_DB_PREFIX . "kreaimmo_immoproperty as prop ON prop.rowid = rec.fk_property";
         $sql                .= " INNER JOIN " . MAIN_DB_PREFIX . "kreaimmo_immorent as rent ON rent.rowid = rec.fk_rent AND rent.preavis=1";
-        $sql                .= " INNER JOIN " . MAIN_DB_PREFIX . "kreaimmo_immocompteur as compteur ON compteur.fk_immoproperty=rec.fk_property";
-        $sql                .= " INNER JOIN " . MAIN_DB_PREFIX . "c_kreaimmo_immocompteur_type as ict ON ict.rowid=compteur.compteur_type_id";
+        $sql                .= " INNER JOIN " . MAIN_DB_PREFIX . "kreaimmo_immocompteur as meter ON meter.fk_immoproperty=rec.fk_property";
+        $sql                .= " INNER JOIN " . MAIN_DB_PREFIX . "c_kreaimmo_immocompteur_type as ict ON ict.rowid=meter.compteur_type_id";
         $sql                .= ' WHERE rec.entity = '.((int) $conf->entity).' AND loc.entity = '.((int) $conf->entity).' AND prop.entity = '.((int) $conf->entity).' AND rent.entity = '.((int) $conf->entity);
-        $sql                .= " AND YEAR(compteur.date_relever)=YEAR(rec.date_echeance)";
+        $sql                .= " AND YEAR(meter.date_relever)=YEAR(rec.date_echeance)";
         $sql                .= $db->order('rec.date_echeance', 'DESC');
-        $resultDataCompteur = array();
+        $meterData = array();
 
         $resql = $db->query($sql);
         if ($resql < 0) {
@@ -244,14 +244,14 @@ $renterId = 0;
 
                 while ($obj = $db->fetch_object($resql)) {
                     $newObj = new stdClass();
-                    if (array_key_exists($obj->fk_immoproperty, $resultDataCompteur) && array_key_exists($obj->yearrelever, $resultDataCompteur[$obj->fk_immoproperty]) && array_key_exists($obj->typecounterid, $resultDataCompteur[$obj->fk_immoproperty][$obj->yearrelever])) {
-                        if ($obj->date_relever < $resultDataCompteur[$obj->fk_immoproperty][$obj->yearrelever][$obj->typecounterid]->dt_first) {
+                    if (array_key_exists($obj->fk_immoproperty, $meterData) && array_key_exists($obj->reading_year, $meterData[$obj->fk_immoproperty]) && array_key_exists($obj->typecounterid, $meterData[$obj->fk_immoproperty][$obj->reading_year])) {
+                        if ($obj->date_relever < $meterData[$obj->fk_immoproperty][$obj->reading_year][$obj->typecounterid]->dt_first) {
                             $newObj->dt_first           = $obj->date_relever;
                             $newObj->value_cpt_dt_first = $obj->qty;
                         } else {
-                            $newObj = $resultDataCompteur[$obj->fk_immoproperty][$obj->yearrelever][$obj->typecounterid];
+                            $newObj = $meterData[$obj->fk_immoproperty][$obj->reading_year][$obj->typecounterid];
                         }
-                        if ($obj->date_relever > $resultDataCompteur[$obj->fk_immoproperty][$obj->yearrelever][$obj->typecounterid]->dt_last) {
+                        if ($obj->date_relever > $meterData[$obj->fk_immoproperty][$obj->reading_year][$obj->typecounterid]->dt_last) {
                             $newObj->dt_last           = $obj->date_relever;
                             $newObj->value_cpt_dt_last = $obj->qty;
                         }
@@ -262,11 +262,11 @@ $renterId = 0;
                         $newObj->value_cpt_dt_last  = $obj->qty;
                     }
                     $newObj->fk_immoproperty = $obj->fk_immoproperty;
-                    $newObj->local           = $obj->local;
-                    $newObj->label_compteur  = $obj->label_compteur;
+                    $newObj->property_label           = $obj->property_label;
+                    $newObj->meter_label  = $obj->meter_label;
                     $newObj->conso           = $newObj->value_cpt_dt_last - $newObj->value_cpt_dt_first;
 
-                    $resultDataCompteur[$obj->fk_immoproperty][$obj->yearrelever][$obj->typecounterid] = $newObj;
+                    $meterData[$obj->fk_immoproperty][$obj->reading_year][$obj->typecounterid] = $newObj;
                 }
                 $db->free($resql);
             }
@@ -274,24 +274,24 @@ $renterId = 0;
     }
 
 
-    $sqlBilan        = "(SELECT l.date_start as date , l.total_amount as debit, 0 as credit , l.label as des";
-    $sqlBilan        .= " FROM " . MAIN_DB_PREFIX . "kreaimmo_immoreceipt as l";
-    $sqlBilan        .= " WHERE  l.entity = ".((int) $conf->entity)." AND l.fk_renter =" . (int) $renterId;
-    $sqlBilan        .= ")";
-    $sqlBilan        .= "UNION (SELECT p.date_payment as date, 0 as debit, p.amount as credit, p.note_public as des";
-    $sqlBilan        .= " FROM " . MAIN_DB_PREFIX . "kreaimmo_immopayment as p";
-    $sqlBilan        .= " WHERE p.entity = ".((int) $conf->entity)." AND p.fk_renter =" . (int) $renterId;
-    $sqlBilan        .= ")";
-    $sqlBilan        .= $db->order('date', 'DESC');
-    $resultDataBilan = array();
-    $resql           = $db->query($sqlBilan);
+    $balanceSql        = "(SELECT l.date_start as date , l.total_amount as debit, 0 as credit , l.label as des";
+    $balanceSql        .= " FROM " . MAIN_DB_PREFIX . "kreaimmo_immoreceipt as l";
+    $balanceSql        .= " WHERE  l.entity = ".((int) $conf->entity)." AND l.fk_renter =" . (int) $renterId;
+    $balanceSql        .= ")";
+    $balanceSql        .= "UNION (SELECT p.date_payment as date, 0 as debit, p.amount as credit, p.note_public as des";
+    $balanceSql        .= " FROM " . MAIN_DB_PREFIX . "kreaimmo_immopayment as p";
+    $balanceSql        .= " WHERE p.entity = ".((int) $conf->entity)." AND p.fk_renter =" . (int) $renterId;
+    $balanceSql        .= ")";
+    $balanceSql        .= $db->order('date', 'DESC');
+    $balanceData = array();
+    $resql           = $db->query($balanceSql);
     if ($resql < 0) {
         setEventMessages($db->lasterror, null, 'errors');
     } else {
         $num = $db->num_rows($resql);
         if ($num > 0) {
             while ($objp = $db->fetch_object($resql)) {
-                $resultDataBilan[] = $objp;
+                $balanceData[] = $objp;
             }
         }
     }
@@ -318,7 +318,7 @@ $renterId = 0;
     $newObj->debit            = $objp2->debit;
     $newObj->debit            = $objp3->credit;
     $newObj->balance          = (float) $objp3->credit - (float) $objp2->debit;
-    $resultDataBilan['total'] = $newObj;
+    $balanceData['total'] = $newObj;
 
     ?>
     <main>
@@ -377,7 +377,7 @@ $renterId = 0;
                                                             class="fa fa-file-pdf px-1"
                                                             aria-hidden="true"></i><?= $data['receiptref'] ?></a></th>
                                                 <td><?= dol_print_date($data['date_echeance']) ?></td>
-                                                <td><?= $data['local'] ?></td>
+                                                <td><?= $data['property_label'] ?></td>
                                                 <td><?= price($data['total']) ?></td>
                                                 <td><?= price($data['partial_payment']) ?></td>
                                                 <td><?= price($data['balance']) ?></td>
@@ -394,7 +394,7 @@ $renterId = 0;
                 </div>
             </div>
         </div>
-        <?php if (!empty($resultDataCompteur)) { ?>
+        <?php if (!empty($meterData)) { ?>
             <div class="container mb-4" id="dataCompteur">
                 <div class="row">
                     <div class="card">
@@ -412,16 +412,16 @@ $renterId = 0;
                                     </thead>
                                     <tbody>
                                         <?php
-                                        if (!empty($resultDataCompteur)) {
-                                            foreach ($resultDataCompteur as $propertyId => $dataByProperty) {
-                                                foreach ($dataByProperty as $yearRelever => $dataByYear) {
+                                        if (!empty($meterData)) {
+                                            foreach ($meterData as $propertyId => $dataByProperty) {
+                                                foreach ($dataByProperty as $readingYear => $dataByYear) {
                                                     foreach ($dataByYear as $counterType => $dataByCounterType) {
 
                                                         ?>
                                                         <tr>
-                                                            <th scope="row"><?= $yearRelever ?></th>
-                                                            <td><?= $dataByCounterType->label_compteur ?></td>
-                                                            <td><?= $dataByCounterType->local ?></td>
+                                                            <th scope="row"><?= $readingYear ?></th>
+                                                            <td><?= $dataByCounterType->meter_label ?></td>
+                                                            <td><?= $dataByCounterType->property_label ?></td>
                                                             <td><?= $dataByCounterType->conso ?></td>
                                                         </tr>
                                                         <?php
@@ -438,7 +438,7 @@ $renterId = 0;
                 </div>
             </div>
         <?php } ?>
-        <?php if (!empty($resultDataBilan)) { ?>
+        <?php if (!empty($balanceData)) { ?>
             <div class="container mb-4" id="dataBilan">
                 <div class="row">
                     <div class="card">
@@ -456,7 +456,7 @@ $renterId = 0;
                                     </thead>
                                     <tbody>
                                         <?php
-                                        foreach ($resultDataBilan as $key => $data) {
+                                        foreach ($balanceData as $key => $data) {
                                             if ($key !== 'total') {
 
                                                 ?>
@@ -474,9 +474,9 @@ $renterId = 0;
                                     </tbody>
                                     <tfoot>
                                     <th scope="row"><?= $langs->trans("Total") ?></th>
-                                    <td><?= price($resultDataBilan['total']->debit) ?></td>
-                                    <td><?= price($resultDataBilan['total']->credit) ?></td>
-                                    <td><?= price($resultDataBilan['total']->balance) ?></td>
+                                    <td><?= price($balanceData['total']->debit) ?></td>
+                                    <td><?= price($balanceData['total']->credit) ?></td>
+                                    <td><?= price($balanceData['total']->balance) ?></td>
                                     </tfoot>
                                 </table>
                             </div>

@@ -522,13 +522,13 @@ class KreaImmoProperty extends CommonObjectKreaImmo
 		return $result;
 	}
 
-	function fetchAllByBuilding($activ = 1)
+	function fetchAllByBuilding($active = 1)
 	{
 		global $user;
 
 		$sql = "SELECT * ";
 		$sql .= " FROM " . MAIN_DB_PREFIX . "kreaimmo_immoproperty as l";
-		$sql .= " WHERE l.status = " . ((int) $activ) . " AND ".$this->getKreaImmoScopeSQL('l');
+		$sql .= " WHERE l.status = " . ((int) $active) . " AND ".$this->getKreaImmoScopeSQL('l');
 		$sql .= " AND l.fk_property = " . ((int) $this->id);
 		$sql .= " ORDER BY label";
 

@@ -394,15 +394,15 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 		}
 		if ($result > 0 && !empty($object->table_element_line)) $object->fetchLines();
 
-		$objsoc = new Societe($this->db);
+		$thirdParty = new Societe($this->db);
 
 		// Change socid if needed
 		if (!empty($socid) && $socid != $object->socid) {
-			if ($objsoc->fetch($socid) > 0) {
-				$object->socid = $objsoc->id;
+			if ($thirdParty->fetch($socid) > 0) {
+				$object->socid = $thirdParty->id;
 			}
 		} else {
-			$objsoc->fetch($object->socid);
+			$thirdParty->fetch($object->socid);
 		}
 
 		// Reset some properties
@@ -531,7 +531,7 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 
 		$sql = 'SELECT '.$this->getFieldList('t').',';
 		$sql .= ' lc.rowid as renter_id,';
-		$sql .= ' lc.email as emaillocataire,';
+		$sql .= ' lc.email as renter_email,';
 		$sql .= ' t.date_rent, pm.fk_mode_reglement, cp.libelle as payment_label, cp.code as payment_code';
 		$sql .= ' FROM ' . MAIN_DB_PREFIX . $this->table_element . ' as t';
 		$sql .= ' INNER JOIN ' . MAIN_DB_PREFIX . 'kreaimmo_immorenter as lc ON t.fk_renter = lc.rowid';
@@ -557,12 +557,12 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 					$this->set_vars_by_db($obj);
 
 					if ($obj->status == self::STATUS_DRAFT) {
-						$this->brouillon = 1;
+						$this->is_draft = 1;
 					}
 
 					$this->fk_mode_reglement  = $obj->fk_mode_reglement;
-					$this->mode_reglement_code = $obj->payment_code;
-					$this->mode_reglement = $obj->payment_label;
+					$this->payment_method_code = $obj->payment_code;
+					$this->payment_method_label = $obj->payment_label;
 					$this->date_rent = $this->db->jdate($obj->date_rent);
 					$this->date_start = $this->db->jdate($obj->date_start);
 					$this->date_end = $this->db->jdate($obj->date_end);
@@ -702,10 +702,10 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 	 */
 	public function fetchByLocalId($id, $filter = array())
 	{
-		$sql = "SELECT il.rowid as reference, il.fk_rent , il.fk_property, il.label as nomrenter, il.fk_renter, il.total_amount,";
+		$sql = "SELECT il.rowid as reference, il.fk_rent , il.fk_property, il.label as receipt_label, il.fk_renter, il.total_amount,";
 		$sql .= " il.rentamount, il.chargesamount, il.date_echeance, il.note_public, il.status, il.paye ,";
 		$sql .= " il.date_start , il.date_end, il.fk_owner, il.partial_payment, il.fk_payment ";
-		$sql .= " , lc.firstname as nomlocataire , ll.label as nomlocal ";
+		$sql .= " , lc.firstname as renter_name , ll.label as property_label ";
 		$sql .= " FROM " . MAIN_DB_PREFIX . $this->table_element . " as il ";
 		$sql .= " INNER JOIN " . MAIN_DB_PREFIX . "kreaimmo_immorenter as lc ON il.fk_renter = lc.rowid";
 		$sql .= " INNER JOIN  " . MAIN_DB_PREFIX . "kreaimmo_immoproperty as ll ON il.fk_property = ll.rowid ";
@@ -734,10 +734,10 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 				$line->ref = $obj->reference;
 				$line->fk_rent = $obj->fk_rent;
 				$line->fk_property = $obj->fk_property;
-				$line->nomlocal = $obj->nomlocal;
-				$line->label = $obj->nomrenter;
+				$line->property_label = $obj->property_label;
+				$line->label = $obj->receipt_label;
 				$line->fk_renter = $obj->fk_renter;
-				$line->nomlocataire = $obj->nomlocataire;
+				$line->renter_name = $obj->renter_name;
 				$line->total_amount = $obj->total_amount;
 				$line->rentamount = $obj->rentamount;
 				$line->chargesamount = $obj->chargesamount;
@@ -1041,7 +1041,7 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 	/**
 	 *  Create a document onto disk according to template module.
 	 *
-	 *  @param	    string		$modele			Force template to use ('' to not force)
+	 *  @param	    string		$modelName			Force template to use ('' to not force)
 	 *  @param		Translate	$outputlangs	objet lang a utiliser pour traduction
 	 *  @param      int			$hidedetails    Hide details of lines
 	 *  @param      int			$hidedesc       Hide description
@@ -1049,25 +1049,25 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 	 *  @param      null|array  $moreparams     Array to provide more information
 	 *  @return     int         				0 if KO, 1 if OK
 	 */
-	public function generateDocument($modele, $outputlangs, $hidedetails = 0, $hidedesc = 0, $hideref = 0, $moreparams = null)
+	public function generateDocument($modelName, $outputlangs, $hidedetails = 0, $hidedesc = 0, $hideref = 0, $moreparams = null)
 	{
 		global $conf, $langs;
 
 		$langs->load("kreaimmo@kreaimmo");
 
-		if (!dol_strlen($modele)) {
-			$modele = 'kreaimmo_quittance';
+		if (!dol_strlen($modelName)) {
+			$modelName = 'kreaimmo_quittance';
 
 			if ($this->model_pdf) {
-				$modele = $this->model_pdf;
+				$modelName = $this->model_pdf;
 			} elseif (!empty($conf->global->KREAIMMO_ADDON_PDF)) {
-				$modele = $conf->global->KREAIMMO_ADDON_PDF;
+				$modelName = $conf->global->KREAIMMO_ADDON_PDF;
 			}
 		}
 
 		$modelpath = "kreaimmo/core/modules/kreaimmo/doc/";
 
-		return $this->commonGenerateDocument($modelpath, $modele, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
+		return $this->commonGenerateDocument($modelpath, $modelName, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
 	}
 
 
@@ -1201,15 +1201,15 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 		$this->note_public = 'This is a comment';
 
 		// Lines
-		$nbp = 5;
-		$xnbp = 0;
-		while ($xnbp < $nbp) {
+		$sampleLineCount = 5;
+		$sampleLineIndex = 0;
+		while ($sampleLineIndex < $sampleLineCount) {
 
 			$line = new KreaImmoreceiptLine();
 
-			$line->nomlocal = 'nomlocal';
+			$line->property_label = 'nomlocal';
 			$line->label = 'nomrenter';
-			$line->nomlocataire = 'M & Mme Locator';
+			$line->renter_name = 'M & Mme Locator';
 			$line->total_amount = 1000;
 			$line->rentamount = 800;
 			$line->chargesamount = 200;
@@ -1226,8 +1226,8 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 				$line->fk_rent = $rentids[$rentid];
 			}
 
-			$this->lines[$xnbp] = $line;
-			$xnbp++;
+			$this->lines[$sampleLineIndex] = $line;
+			$sampleLineIndex++;
 		}
 	}
 
@@ -1336,7 +1336,7 @@ class KreaImmoreceiptLine
 	public $fk_owner;
 	public $paye;
 	public $renter_id;
-	public $nomlocataire;
-	public $nomlocal;
+	public $renter_name;
+	public $property_label;
 	public $property_id;
 }

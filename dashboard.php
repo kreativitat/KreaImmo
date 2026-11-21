@@ -209,7 +209,7 @@ print '<div class="fichecenter fichecenterbis">';
 $globalboxes=[];
 if (kreaimmoPageHasRight('', 'read')) {
 
-	$sql = "SELECT loc.lastname as nom, ";
+	$sql = "SELECT loc.lastname as renter_name, ";
 	$sql .= " SUM(rec.balance) as totalbalance";
 	$sql .= " FROM " . MAIN_DB_PREFIX . "kreaimmo_immoreceipt as rec";
 	//$sql .= " INNER JOIN " . MAIN_DB_PREFIX . "kreaimmo_immopayment as p ON rec.rowid = p.fk_receipt";
@@ -228,9 +228,9 @@ if (kreaimmoPageHasRight('', 'read')) {
 		if ($num > 0) {
 			while ($objp = $db->fetch_object($resql)) {
 				$lineData[]=array(
-					'title' => $objp->nom,
+					'title' => $objp->renter_name,
 					'value' => price($objp->totalbalance),
-					'url' => dol_buildpath('custom/kreaimmo/payment/immopayment_card.php', 1).'?action=createall&search_renter='.urlencode($objp->nom)
+					'url' => dol_buildpath('custom/kreaimmo/payment/immopayment_card.php', 1).'?action=createall&search_renter='.urlencode($objp->renter_name)
 				);
 			}
 

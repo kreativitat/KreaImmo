@@ -153,11 +153,11 @@ if (empty($reshook)) {
 				}
 			}
 		}
-		$newCharge = price2num($chargeAmount) - $totalChargeAllocated;
-		$object->chargesamount = $newCharge;
+		$newChargesAmount = price2num($chargeAmount) - $totalChargeAllocated;
+		$object->chargesamount = $newChargesAmount;
 		$object->note_private = $langs->trans('NoteRegulCharge', dol_print_date($dt_start), dol_print_date($dt_end), price($totalChargeAllocated) . ' €');
 		$object->note_private = dol_concatdesc($object->note_private, $langs->trans('NoteRegulTotalCharge', $chargeAmount) . ' €');
-		$object->note_private = dol_concatdesc($object->note_private, $langs->trans('NoteRegulLetToPaid', $newCharge) . ' €');
+		$object->note_private = dol_concatdesc($object->note_private, $langs->trans('NoteRegulLetToPaid', $newChargesAmount) . ' €');
 		$object->note_private = dol_concatdesc($object->note_private, $langs->trans('RegulChargeStepDesc', GETPOST('first_qty'), GETPOST('end_qty')) . ' €');
 		$result = $object->update($user);
 
@@ -208,14 +208,14 @@ if (empty($reshook)) {
 	elseif ($action == 'confirm_delete_paiement' && $confirm == 'yes' && $permissiontodelete) {
 		$receipt->fetch($id);
 		if ($receipt->status == KreaImmoReceipt::STATUS_VALIDATED && $receipt->paye == 0) {
-			$paiement = new KreaImmoPayment($db);
-			$result = $paiement->fetch(GETPOST('paiement_id'));
+			$receiptPayment = new KreaImmoPayment($db);
+			$result = $receiptPayment->fetch(GETPOST('paiement_id'));
 			if ($result > 0) {
-				$result = $paiement->delete($user); // If fetch ok and found
+				$result = $receiptPayment->delete($user); // If fetch ok and found
 				header("Location: " . $_SERVER['PHP_SELF'] . "?id=" . $id);
 			}
 			if ($result < 0) {
-				setEventMessages(null, $paiement->errors, 'errors');
+				setEventMessages(null, $receiptPayment->errors, 'errors');
 			}
 		}
 	}
@@ -330,7 +330,7 @@ if (empty($reshook)) {
 	if ($action == 'add' && !$cancel) {
 		$error = 0;
 
-		$date_echeance = dol_mktime(12, 0, 0, GETPOST("date_echeancemonth"), GETPOST("date_echeanceday"), GETPOST("date_echeanceyear"));
+		$dueDate = dol_mktime(12, 0, 0, GETPOST("date_echeancemonth"), GETPOST("date_echeanceday"), GETPOST("date_echeanceyear"));
 		$date_start = dol_mktime(12, 0, 0, GETPOST("date_startmonth"), GETPOST("date_startday"), GETPOST("date_startyear"));
 		$date_end = dol_mktime(12, 0, 0, GETPOST("date_endmonth"), GETPOST("date_endday"), GETPOST("date_endyear"));
 
@@ -338,7 +338,7 @@ if (empty($reshook)) {
 		$object->label = GETPOST("label");
 		$object->date_start = $date_start;
 		$object->date_end = $date_end;
-		$object->date_echeance = $date_echeance;
+		$object->date_echeance = $dueDate;
 		$object->fk_rent = GETPOST("fk_rent");
 		$object->fk_property = GETPOST("fk_property");
 		$object->fk_renter = GETPOST("fk_renter");
@@ -364,7 +364,7 @@ if (empty($reshook)) {
 		$object->last_main_doc = GETPOST("last_main_doc");
 		$object->status = GETPOST("status");
 
-		if ($date_echeance == '' || $date_start == '' || $date_end == '') {
+		if ($dueDate == '' || $date_start == '' || $date_end == '') {
 			setEventMessages($langs->trans("ErrorFieldRequired", $langs->transnoentitiesnoconv("Date")), null, 'errors');
 			$action = "create";
 			$error++;
@@ -393,13 +393,13 @@ if (empty($reshook)) {
 
 	if ($action == 'addall') {
 		$error = 0;
-		$date_echeance = dol_mktime(12, 0, 0, GETPOST('echmonth', 'int'), GETPOST('echday', 'int'), GETPOST('echyear', 'int'));
+		$dueDate = dol_mktime(12, 0, 0, GETPOST('echmonth', 'int'), GETPOST('echday', 'int'), GETPOST('echyear', 'int'));
 
 		$dateperiod = dol_mktime(12, 0, 0, GETPOST('periodmonth', 'int'), GETPOST('periodday', 'int'), GETPOST('periodyear', 'int'));
 
 		$dateperiodend = dol_mktime(12, 0, 0, GETPOST('periodendmonth', 'int'), GETPOST('periodendday', 'int'), GETPOST('periodendyear', 'int'));
 
-		if (empty($date_echeance)) {
+		if (empty($dueDate)) {
 			setEventMessages($langs->trans("ErrorFieldRequired", $langs->transnoentities("DateDue")), null, 'errors');
 			Header("Location: " . $_SERVER["PHP_SELF"] . "?action=createall");
 			exit;
@@ -415,47 +415,47 @@ if (empty($reshook)) {
 			exit;
 			$error++;
 		} else {
-			$mesLignesCochees = GETPOST('mesCasesCochees');
-			if (!empty($mesLignesCochees)) {
-				foreach ($mesLignesCochees as $maLigneCochee) {
+			$selectedRows = GETPOST('mesCasesCochees');
+			if (!empty($selectedRows)) {
+				foreach ($selectedRows as $selectedRow) {
 					$receipt = new KreaImmoReceipt($db);
 
-					$maLigneCourante = preg_split("/[\_,]/", $maLigneCochee);
+					$currentRow = preg_split("/[\_,]/", $selectedRow);
 
-					$monId = $maLigneCourante[0];
-					$monLocal = $maLigneCourante[1];
-					$monLocataire = $maLigneCourante[2];
-					$monMontant = $maLigneCourante[3];
-					$monLoyer = $maLigneCourante[4];
-					$mesCharges = $maLigneCourante[5];
-					$maTVA = $maLigneCourante[6];
-					$monProprio = $maLigneCourante[7];
-					$socProprio = $maLigneCourante[8];
+					$selectedRentId = $currentRow[0];
+					$selectedPropertyId = $currentRow[1];
+					$selectedRenterId = $currentRow[2];
+					$selectedAmount = $currentRow[3];
+					$selectedRentAmount = $currentRow[4];
+					$selectedCharges = $currentRow[5];
+					$vatFlag = $currentRow[6];
+					$selectedOwnerId = $currentRow[7];
+					$ownerThirdpartyId = $currentRow[8];
 
 					// main info rent
 					$receipt->label = GETPOST('label', 'alpha');
-					$receipt->date_echeance = $date_echeance;
+					$receipt->date_echeance = $dueDate;
 					$receipt->date_start = $dateperiod;
 					$receipt->date_end = $dateperiodend;
 
 					// main info contract
 					$receipt->ref = '(PROV)';
-					$receipt->fk_rent = $monId;
-					$receipt->fk_property = $monLocal;
-					$receipt->fk_renter = $monLocataire;
+					$receipt->fk_rent = $selectedRentId;
+					$receipt->fk_property = $selectedPropertyId;
+					$receipt->fk_renter = $selectedRenterId;
 
-					if ($maTVA == 'Oui') {
-						$receipt->total_amount = $monMontant * 1.2;
-						$receipt->vat_amount = $monMontant * 0.2;
+					if ($vatFlag == 'Oui') {
+						$receipt->total_amount = $selectedAmount * 1.2;
+						$receipt->vat_amount = $selectedAmount * 0.2;
 					} else {
-						$receipt->total_amount = $monMontant;
+						$receipt->total_amount = $selectedAmount;
 						$receipt->vat_amount = 0;
 					}
 
-					$receipt->rentamount = $monLoyer;
-					$receipt->chargesamount = $mesCharges;
-					$receipt->fk_owner = $monProprio;
-					$receipt->fk_soc = $socProprio;
+					$receipt->rentamount = $selectedRentAmount;
+					$receipt->chargesamount = $selectedCharges;
+					$receipt->fk_owner = $selectedOwnerId;
+					$receipt->fk_soc = $ownerThirdpartyId;
 					$receipt->status = 0;
 					$receipt->paye = 0;
 					$result = $receipt->create($user);
@@ -481,7 +481,7 @@ if (empty($reshook)) {
 	 */
 
 	if ($action == 'update') {
-		$date_echeance = dol_mktime(12, 0, 0, GETPOST("date_echeancemonth", 'int'), GETPOST("date_echeanceday", 'int'), GETPOST("date_echeanceyear", 'int'));
+		$dueDate = dol_mktime(12, 0, 0, GETPOST("date_echeancemonth", 'int'), GETPOST("date_echeanceday", 'int'), GETPOST("date_echeanceyear", 'int'));
 		$date_start = dol_mktime(12, 0, 0, GETPOST("date_startmonth", 'int'), GETPOST("date_startday", 'int'), GETPOST("date_startyear", 'int'));
 		$date_end = dol_mktime(12, 0, 0, GETPOST("date_endmonth", 'int'), GETPOST("date_endday", 'int'), GETPOST("date_endyear", 'int'));
 
@@ -516,7 +516,7 @@ if (empty($reshook)) {
 		$receipt->fk_mode_reglement = GETPOST("fk_mode_reglement");
 		$receipt->mode_code = GETPOST("mode_code");
 		$receipt->mode_payment = GETPOST("mode_payment");
-		$receipt->date_echeance = $date_echeance;
+		$receipt->date_echeance = $dueDate;
 		$receipt->note_public = GETPOST("note_public");
 		$receipt->status = GETPOST("status");
 		$receipt->date_start = $date_start;
@@ -711,7 +711,7 @@ if ($action == 'createall') {
 	print '<input name="label" size="30" value="' . GETPOST('label') . '"';
 	print '</td></tr>';
 	print '<tr><td class="fieldrequired">' . $langs->trans('Echeance') . '</td><td>';
-	print $form->selectDate(!empty($date_echeance) ? $date_echeance : '-1', 'ech', '', '', 0, "fiche_loyer", 1, 1, 0, '', '', $object->date);
+	print $form->selectDate(!empty($dueDate) ? $dueDate : '-1', 'ech', '', '', 0, "fiche_loyer", 1, 1, 0, '', '', $object->date);
 	print '</td></tr>';
 	print '<tr><td class="">' . $langs->trans('Periode_du') . '</td><td>';
 	print $form->selectDate(!empty($dateperiod) ? $dateperiod : '-1', 'period', '', '', 0, "fiche_loyer", 1, 1, 0, '', '', $object->date);
@@ -727,8 +727,8 @@ if ($action == 'createall') {
 	 * List of contracts
 	 */
 	$sql = "SELECT rent.rowid as contractid, rent.ref as contract, loc.lastname as rentername, own.lastname as ownername, own.firstname as ownerfirstname, prop.ref as
-	localref, prop.address, prop.label as local, rent.totalamount as total, rent.rentamount , rent.chargesamount,
-	rent.fk_renter as reflocataire, rent.fk_property as reflocal, rent.preavis as preavis,
+	localref, prop.address, prop.label as property_label, rent.totalamount as total, rent.rentamount , rent.chargesamount,
+	rent.fk_renter as renter_id, rent.fk_property as property_id, rent.preavis as preavis,
 	rent.vat, prop.fk_owner, own.rowid, own.fk_soc, prop.fk_owner, rent.periode";
 	$sql .= " FROM " . MAIN_DB_PREFIX . "kreaimmo_immorenter as loc";
 	$sql .= " , " . MAIN_DB_PREFIX . "kreaimmo_immorent as rent";
@@ -760,7 +760,7 @@ if ($action == 'createall') {
 		$i = 0;
 		$total = 0;
 
-		//print_barre_liste($titre, $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, $massactionbutton, $num, $nbtotalofrecords, 'address', 0, $newcardbutton, '', $limit, 0, 0, 1);
+		//print_barre_liste($pageTitle, $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, $massactionbutton, $num, $nbtotalofrecords, 'address', 0, $newcardbutton, '', $limit, 0, 0, 1);
 
 		print '<br><table class="noborder" width="100%">';
 		print '<tr class="liste_titre">';
@@ -793,8 +793,8 @@ if ($action == 'createall') {
 
 				print '<td>' . $objp->contract . '</td>';
 				print '<td>' . $objp->localref . '</td>';
-				print '<td>' . $objp->local . '</td>';
-				print '<td>' . $objp->reflocataire . '</td>';
+				print '<td>' . $objp->property_label . '</td>';
+				print '<td>' . $objp->renter_id . '</td>';
 				print '<td>' . $objp->rentername . '</td>';
 				print '<td>' . $objp->fk_owner . '</td>';
 				print '<td>' . $objp->ownername . '</td>';
@@ -809,7 +809,7 @@ if ($action == 'createall') {
 				// Colonne choix contrat
 				print '<td class="center">';
 
-				print '<input class="checkforselect flat" type="checkbox" name="mesCasesCochees[]" value="' . $objp->contractid . '_' . $objp->localref . '_' . $objp->reflocataire . '_' . $objp->total . '_' . $objp->rentamount . '_' . $objp->chargesamount . '_' . $objp->vat . '_' . $objp->fk_owner . '_' . $objp->fk_soc . '"' . (($objp->localref && ($objp->periode == 'mensuel')) ? ' checked="checked"' : "") . '/>';
+				print '<input class="checkforselect flat" type="checkbox" name="mesCasesCochees[]" value="' . $objp->contractid . '_' . $objp->localref . '_' . $objp->renter_id . '_' . $objp->total . '_' . $objp->rentamount . '_' . $objp->chargesamount . '_' . $objp->vat . '_' . $objp->fk_owner . '_' . $objp->fk_soc . '"' . (($objp->localref && ($objp->periode == 'mensuel')) ? ' checked="checked"' : "") . '/>';
 				print '</td>';
 				print '</tr>' . "\n";
 
@@ -866,8 +866,8 @@ if (($id || $ref) && $action == 'edit') {
 
 		if ($val['label'] == 'PartialPayment') {
 			if ($object->getSommePaiement()) {
-				$totalpaye = price($object->getSommePaiement(), 0, $outputlangs, 1, -1, -1, $conf->currency);
-				print '<input name="partial_payment" class="flat" size="8" value="' . $totalpaye . '">';
+				$totalPaid = price($object->getSommePaiement(), 0, $outputlangs, 1, -1, -1, $conf->currency);
+				print '<input name="partial_payment" class="flat" size="8" value="' . $totalPaid . '">';
 			}
 		} elseif ($val['label'] == 'Balance') {
 			$balance = $object->total_amount - $object->getSommePaiement();
@@ -876,7 +876,7 @@ if (($id || $ref) && $action == 'edit') {
 				print '<input name="balance" class="flat" size="8" value="' . $balance . '">';
 			}
 		} elseif ($val['label'] == 'Paye') {
-			if ($totalpaye == 0) {
+			if ($totalPaid == 0) {
 				$object->paye = $langs->trans('UnPaidReceipt');
 				print '<input name="unpaidreceipt" class="flat" size="25" value="' . $object->paye . '">';
 			} elseif ($balance == 0) {
@@ -925,7 +925,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	$head = kreaimmo_immoreceiptPrepareHead($object);
 	print dol_get_fiche_head($head, 'card', $langs->trans("KreaImmoReceipt"), -1, 'bill');
 
-	$totalpaye = $object->getSommePaiement();
+	$totalPaid = $object->getSommePaiement();
 
 	$formconfirm = '';
 
@@ -981,7 +981,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		if ($result < 0) {
 			setEventMessages($rent->error, $rent->errors, 'errors');
 		} else {
-			$dt_startCpt = array();
+			$readingDateOptions = array();
 			$sql = "SELECT DISTINCT date_relever FROM " . MAIN_DB_PREFIX . "kreaimmo_immocompteur WHERE fk_immoproperty=" . (int)$rent->fk_property;
 			$sql .= " AND date_relever>='" . $db->idate($rent->date_last_regul_charge) . "'";
 
@@ -989,29 +989,29 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			if (!$resql) {
 				setEventMessages($db->lasterror, null, 'errors');
 			} else {
-				while ($bjDt = $db->fetch_object($resql)) {
-					$dt_startCpt[$db->jdate($bjDt->date_relever)] = dol_print_date($db->jdate($bjDt->date_relever));
+				while ($readingDateRow = $db->fetch_object($resql)) {
+					$readingDateOptions[$db->jdate($readingDateRow->date_relever)] = dol_print_date($db->jdate($readingDateRow->date_relever));
 				}
 
 				dol_include_once('/kreaimmo/class/kreaimmocompteur_cost.class.php');
-				$cptCost = new KreaImmoCompteur_Cost($db);
-				$resultCptCost = $cptCost->fetchAll('', '', 0, 0, array('t.status' => $cptCost::STATUS_VALIDATED));
-				if (!is_array($resultCptCost) && $resultCptCost < 0) {
-					setEventMessages($cptCost->error, $cptCost->errors, 'errors');
+				$meterCost = new KreaImmoCompteur_Cost($db);
+				$meterCostResult = $meterCost->fetchAll('', '', 0, 0, array('t.status' => $meterCost::STATUS_VALIDATED));
+				if (!is_array($meterCostResult) && $meterCostResult < 0) {
+					setEventMessages($meterCost->error, $meterCost->errors, 'errors');
 				} else {
-					$cost_cpt = array();
-					if (!empty($resultCptCost)) {
-						foreach ($resultCptCost as $cptc) {
+					$meterCostOptions = array();
+					if (!empty($meterCostResult)) {
+						foreach ($meterCostResult as $meterCostRow) {
 							//TODO get compteur type
-							$cost_cpt[$cptc->id] = $cptc->cost_year . ' ( ' . price($cptc->amount) . ')';
+							$meterCostOptions[$meterCostRow->id] = $meterCostRow->cost_year . ' ( ' . price($meterCostRow->amount) . ')';
 						}
 					}
 
 					$formquestion = array(
 						'text' => $langs->trans("RegulCharge"),
-						array('type' => 'select', 'label' => $langs->trans("DateLastCptDoneSinceLastRegul", dol_print_date($rent->date_last_regul_charge)), 'name' => 'dt_start', 'values' => $dt_startCpt),
-						array('type' => 'select', 'label' => $langs->trans("DateEnd"), 'name' => 'dt_end', 'values' => $dt_startCpt),
-						array('type' => 'select', 'label' => $langs->trans("CostCpt"), 'name' => 'cost_cpt', 'values' => $cost_cpt),
+						array('type' => 'select', 'label' => $langs->trans("DateLastCptDoneSinceLastRegul", dol_print_date($rent->date_last_regul_charge)), 'name' => 'dt_start', 'values' => $readingDateOptions),
+						array('type' => 'select', 'label' => $langs->trans("DateEnd"), 'name' => 'dt_end', 'values' => $readingDateOptions),
+						array('type' => 'select', 'label' => $langs->trans("CostCpt"), 'name' => 'cost_cpt', 'values' => $meterCostOptions),
 					);
 
 					$formconfirm = $form->formconfirm($_SERVER["PHP_SELF"] . '?id=' . $object->id, $langs->trans('RegulCharge'), $text, 'regulcharge_step2', $formquestion, 0, 1, 250, 650);
@@ -1052,23 +1052,23 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 				$endQty = $objQty->qty;
 			}
 
-			$diffCpt = $endQty - $firstQty;
+			$readingDifference = $endQty - $firstQty;
 
 			dol_include_once('/kreaimmo/class/kreaimmocompteur_cost.class.php');
-			$cptCost = new KreaImmoCompteur_Cost($db);
-			$result = $cptCost->fetch(GETPOST('cost_cpt', 'int'));
+			$meterCost = new KreaImmoCompteur_Cost($db);
+			$result = $meterCost->fetch(GETPOST('cost_cpt', 'int'));
 			if ($result < 0) {
-				setEventMessages($cptCost->error, $cptCost->errors, 'errors');
+				setEventMessages($meterCost->error, $meterCost->errors, 'errors');
 			}
 			$estimatedCost = 0;
-			if (!empty($cptCost->amount)) {
-				$estimatedCost = $diffCpt * $cptCost->amount;
+			if (!empty($meterCost->amount)) {
+				$estimatedCost = $readingDifference * $meterCost->amount;
 			}
 
 
 
 			$formquestion = array(
-				'text' => $langs->trans("RegulChargeStep2", $firstQty, $endQty, $diffCpt, $cptCost->amount),
+				'text' => $langs->trans("RegulChargeStep2", $firstQty, $endQty, $readingDifference, $meterCost->amount),
 				array('type' => 'text', 'name' => 'total_charge', 'label' => $langs->trans("TotalCharge"), 'value' => $estimatedCost),
 				array('type' => 'hidden', 'name' => 'first_qty', 'value' => $firstQty),
 				array('type' => 'hidden', 'name' => 'end_qty', 'value' => $endQty),
@@ -1110,7 +1110,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	if (empty($conf->global->MAIN_DISABLE_OTHER_LINK) && $object->thirdparty->id > 0) $morehtmlref .= ' (<a href="' . dol_buildpath('/kreaimmo/receipt/immoreceipt_list.php', 1) . '?socid=' . $object->thirdparty->id . '&search_fk_soc=' . urlencode($object->thirdparty->id) . '">' . $langs->trans("OtherReceipts") . '</a>)';
 	$morehtmlref .= '</div>';
 
-	$object->totalpaye = $totalpaye;   // To give a chance to dol_banner_tab to use already paid amount to show correct status
+	$object->totalpaye = $totalPaid;   // To give a chance to dol_banner_tab to use already paid amount to show correct status
 
 	dol_banner_tab($object, 'ref', $linkback, 1, 'ref', 'ref', $morehtmlref, '', 0, '', '');
 
@@ -1210,8 +1210,8 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 
 		if ($val['label'] == 'PartialPayment') {
 			if ($object->getSommePaiement()) {
-				$totalpaye = price($object->getSommePaiement(), 0, $outputlangs, 1, -1, -1, $conf->currency);
-				print $totalpaye;
+				$totalPaid = price($object->getSommePaiement(), 0, $outputlangs, 1, -1, -1, $conf->currency);
+				print $totalPaid;
 			}
 		} elseif ($val['label'] == 'Balance') {
 			$balance = $object->total_amount - $object->getSommePaiement();
@@ -1219,7 +1219,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 				print price($balance, 0, $outputlangs, 1, -1, -1, $conf->currency);
 			}
 		} elseif ($val['label'] == 'Paye') {
-			if ($totalpaye == 0) {
+			if ($totalPaid == 0) {
 				print $object->paye = $langs->trans('UnPaidReceipt');
 			} elseif ($balance == 0) {
 				print $object->paye = $langs->trans('PaidReceipt');
@@ -1258,7 +1258,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	}
 
 	// List of payments
-	$sql = "SELECT p.rowid,p.fk_rent, p.fk_receipt, p.date_payment as dp, p.amount, p.fk_mode_reglement, c.code as type_code, c.libelle as mode_reglement_label, r.partial_payment, ";
+	$sql = "SELECT p.rowid,p.fk_rent, p.fk_receipt, p.date_payment as dp, p.amount, p.fk_mode_reglement, c.code as type_code, c.libelle as payment_method_label, r.partial_payment, ";
 	$sql .= ' ba.rowid as baid, ba.ref as baref, ba.label, ba.number as banumber, ba.account_number, ba.fk_accountancy_journal';
 	$sql .= " FROM " . MAIN_DB_PREFIX . "kreaimmo_immoreceipt as r";
 	$sql .= ", " . MAIN_DB_PREFIX . "kreaimmo_immopayment as p";
@@ -1300,9 +1300,9 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			print '<tr class="oddeven"><td>';
 			print '<a href="' . dol_buildpath('/kreaimmo/receipt/payment/card.php', 1) . '?id=' . $objp->rowid . "&amp;receipt=" . $id . '">' . img_object($langs->trans("Payment"), "payment") . ' ' . $objp->rowid . '</a></td>';
 			print '<td>' . dol_print_date($db->jdate($objp->dp), 'day') . '</td>';
-			$paymentstatic->fk_mode_reglement = $objp->mode_reglement_label;
+			$paymentstatic->fk_mode_reglement = $objp->payment_method_label;
 			$paymentstatic->type_code = $objp->type_code;
-			$paymentstatic->mode_reglement_label = $objp->mode_reglement_label;
+			$paymentstatic->payment_method_label = $objp->payment_method_label;
 			print '<td>' . $paymentstatic->fk_mode_reglement . '</td>';
 
 			if (!empty($conf->banque->enabled)) {
@@ -1334,13 +1334,13 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			}
 			print '</td>';
 			print '</tr>';
-			$totalpaye = $object->getSommePaiement();
+			$totalPaid = $object->getSommePaiement();
 
 			$i++;
 		}
 
 		if ($object->paye == 0) {
-			print '<tr><td colspan="4" class="right">' . $langs->trans("AlreadyPaid") . ' :</td><td class="right"><b>' . $cursymbolbefore . price($totalpaye, 0, $outputlangs) . ' ' . $cursymbolafter . '</b>' . "</td><td>&nbsp;</td></tr>\n";
+			print '<tr><td colspan="4" class="right">' . $langs->trans("AlreadyPaid") . ' :</td><td class="right"><b>' . $cursymbolbefore . price($totalPaid, 0, $outputlangs) . ' ' . $cursymbolafter . '</b>' . "</td><td>&nbsp;</td></tr>\n";
 			print '<tr><td colspan="4" class="right">' . $langs->trans("AmountExpected") . ' :</td><td class="right">' . $cursymbolbefore . price($object->total_amount, 0, $outputlangs) . ' ' . $cursymbolafter . "</td><td>&nbsp;</td></tr>\n";
 
 			$remaintopay = $object->total_amount - $object->getSommePaiement();
@@ -1414,9 +1414,9 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		print '<table class="border" width="100%">';
 		print '<tr class="liste_titre"><td colspan=3>' . $langs->trans("LinkedDocuments") . '</td></tr>';
 		// afficher
-		$legende = $langs->trans("Ouvrir");
+		$linkTitle = $langs->trans("Ouvrir");
 		print '<tr><td width="200" class="center">' . $langs->trans("Quittance") . '</td><td> ';
-		print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=kreaimmo&file=quittance_' . $id . '.pdf" alt="' . $legende . '" title="' . $legende . '">';
+		print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=kreaimmo&file=quittance_' . $id . '.pdf" alt="' . $linkTitle . '" title="' . $linkTitle . '">';
 		print '<img src="' . DOL_URL_ROOT . '/theme/' . $conf->theme . '/img/pdf2.png" border="0" class="absmiddle" hspace="2px" ></a>';
 		print '</td></tr></table>';
 	}

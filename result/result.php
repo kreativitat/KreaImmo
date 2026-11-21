@@ -96,12 +96,12 @@ $form = new Form($db);
 
 $immoData=array();
 $dataOwner=array();
-$dataEncaissement=array();
-$dataPaiement=array();
-$dataCharge=array();
-$dataChargeNd=array();
+$collectionData=array();
+$receiptData=array();
+$deductibleCostData=array();
+$nonDeductibleCostData=array();
 $dataRevenueFiscal=array();
-$dataResultatImmo=array();
+$propertyResultData=array();
 $dataRevenueNet=array();
 $owner = new KreaImmoOwner($db);
 $resultFetch = $owner->fetchAll('','',0,0,array());
@@ -195,13 +195,13 @@ if ($resql) {
 				$immoData[$row->rowid] = $immoBuilding->label;
 			}
 		}
-		$dataResultatImmo[$row->rowid][0]=$immoData[$row->rowid];
+		$propertyResultData[$row->rowid][0]=$immoData[$row->rowid];
 		print '<tr class="oddeven"><td>' . $immoData[$row->rowid]  . '</td>';
 		foreach ($months_list as $month_num => $month_name) {
 			print '<td align="right">' . price($row->{'month_'.$month_num}) . '</td>';
 			$total += $row->{'month_'.$month_num};
 			$total_month[$month_num] += (float) $row->{'month_'.$month_num};
-			$dataResultatImmo[$row->rowid][$month_num] = (float) $row->{'month_'.$month_num};
+			$propertyResultData[$row->rowid][$month_num] = (float) $row->{'month_'.$month_num};
 		}
 		print '<td align="right"><b>' . price($total) . '</b></td>';
 		print '</tr>';
@@ -272,13 +272,13 @@ if ($resql) {
 			}
 		}
 
-		$dataPaiement[$row->rowid][0]=$immoData[$row->rowid];
+		$receiptData[$row->rowid][0]=$immoData[$row->rowid];
 		print '<tr class="oddeven"><td>' . $immoData[$row->rowid] . '</td>';
 		foreach ($months_list as $month_num => $month_name) {
 			print '<td align="right">' . price($row->{'month_'.$month_num}) . '</td>';
 			$total += $row->{'month_'.$month_num};
 			$total_month[$month_num]  += (float) $row->{'month_'.$month_num};
-			$dataPaiement[$row->rowid][$month_num] = (float) $row->{'month_'.$month_num};
+			$receiptData[$row->rowid][$month_num] = (float) $row->{'month_'.$month_num};
 		}
 		print '<td align="right"><b>' . price($total) . '</b></td>';
 		print '</tr>';
@@ -307,10 +307,10 @@ print '</tr>';
 //Loyer brut encaissé
 $value_array = array();
 
-if (!empty($dataResultatImmo)) {
-	foreach($dataResultatImmo as $ibId=>$dataMonth) {
+if (!empty($propertyResultData)) {
+	foreach($propertyResultData as $ibId=>$dataMonth) {
 
-		//$rowencaissement = $db->fetch_object($rowencaissement);
+		//$collectionRow = $db->fetch_object($collectionRow);
 
 		if (!array_key_exists($ibId,$immoData)) {
 			$immoBuilding = new KreaImmoBuilding($db);
@@ -323,10 +323,10 @@ if (!empty($dataResultatImmo)) {
 		}
 		$value_array[$immoData[$ibId]][0] = $immoData[$ibId];
 		foreach ($months_list as $month_num => $month_name) {
-			$value_array[$immoData[$ibId]][$month_num] = (float)$dataResultatImmo[$ibId][$month_num];
-			if (array_key_exists($ibId, $dataPaiement)) {
-				$value_array[$immoData[$ibId]][$month_num] -= (float)$dataPaiement[$ibId][$month_num];
-				$dataEncaissement[$ibId][$month_num] = $value_array[$immoData[$ibId]][$month_num];
+			$value_array[$immoData[$ibId]][$month_num] = (float)$propertyResultData[$ibId][$month_num];
+			if (array_key_exists($ibId, $receiptData)) {
+				$value_array[$immoData[$ibId]][$month_num] -= (float)$receiptData[$ibId][$month_num];
+				$collectionData[$ibId][$month_num] = $value_array[$immoData[$ibId]][$month_num];
 			}
 		}
 	}
@@ -424,7 +424,7 @@ if ($resql) {
 			print '<td align="right">' . price($row->{'month_'.$month_num}) . '</td>';
 			$total += $row->{'month_'.$month_num};
 			$total_month[$month_num] += (float) $row->{'month_'.$month_num};
-			$dataCharge[$row->rowid][$month_num] = (float) $row->{'month_'.$month_num};
+			$deductibleCostData[$row->rowid][$month_num] = (float) $row->{'month_'.$month_num};
 		}
 		print '<td align="right"><b>' . price($total) . '</b></td>';
 		print '</tr>';
@@ -448,8 +448,8 @@ print "</table>\n";
 // Revenu fiscal
 $value_array = array();
 
-if (!empty($dataPaiement) && !empty($dataEncaissement) && !empty($dataCharge)) {
-	foreach($dataEncaissement as $ibId=>$dataMonth) {
+if (!empty($receiptData) && !empty($collectionData) && !empty($deductibleCostData)) {
+	foreach($collectionData as $ibId=>$dataMonth) {
 		//find immo
 		if (!array_key_exists($ibId,$immoData)) {
 			$immoBuilding = new KreaImmoBuilding($db);
@@ -464,11 +464,11 @@ if (!empty($dataPaiement) && !empty($dataEncaissement) && !empty($dataCharge)) {
 		$dataRevenueFiscal[$ibId][0] = $immoData[$ibId];
 		foreach($dataMonth as $monthInt=>$amount) {
 			$dataRevenueFiscal[$ibId][$monthInt] = $amount;
-			/*if (array_key_exists($ibId, $dataPaiement)) {
-				$dataRevenueFiscal[$immoData[$ibId]][$monthInt] -= $dataPaiement[$ibId][$monthInt];
+			/*if (array_key_exists($ibId, $receiptData)) {
+				$dataRevenueFiscal[$immoData[$ibId]][$monthInt] -= $receiptData[$ibId][$monthInt];
 			}*/
-			if (array_key_exists($ibId, $dataCharge)) {
-				$dataRevenueFiscal[$ibId][$monthInt] -= $dataCharge[$ibId][$monthInt];
+			if (array_key_exists($ibId, $deductibleCostData)) {
+				$dataRevenueFiscal[$ibId][$monthInt] -= $deductibleCostData[$ibId][$monthInt];
 			}
 		}
 	}
@@ -523,7 +523,7 @@ foreach ($months_list as $month_name) {
 }
 print '<td align="right"><b>' . $langs->trans("Total") . '</b></td></tr>';
 
-$sql = "SELECT ib.label AS nom_immeuble,ib.rowid";
+$sql = "SELECT ib.label AS building_label,ib.rowid";
 foreach ($months_list as $month_num => $month_name) {
 	$sql .= ', ROUND(SUM(case when MONTH(ic.date_start)=' . $month_num . ' then ic.amount else 0 end),2) AS month_' . $month_num;
 }
@@ -552,9 +552,9 @@ if ($resql) {
 		$row = $db->fetch_object($resql);
 		$total = 0;
 
-		print '<tr class="oddeven"><td>' . $row->nom_immeuble . '</td>';
+		print '<tr class="oddeven"><td>' . $row->building_label . '</td>';
 		foreach ($months_list as $month_num => $month_name) {
-			$dataChargeNd[$row->rowid][$month_num]=$row->{'month_'.$month_num};
+			$nonDeductibleCostData[$row->rowid][$month_num]=$row->{'month_'.$month_num};
 			print '<td align="right">' . price($row->{'month_'.$month_num}) . '</td>';
 			$total += $row->{'month_'.$month_num};
 			$total_month[$month_num] += (float) $row->{'month_'.$month_num};
@@ -585,8 +585,8 @@ if (!empty($dataRevenueFiscal)) {
 
 
 	$immoData=array();
-	if (!empty($dataEncaissement)) {
-		foreach($dataEncaissement as $ibId=>$dataMonth) {
+	if (!empty($collectionData)) {
+		foreach($collectionData as $ibId=>$dataMonth) {
 			//find immo
 			if (!array_key_exists($ibId,$immoData)) {
 				$immoBuilding = new KreaImmoBuilding($db);
@@ -601,8 +601,8 @@ if (!empty($dataRevenueFiscal)) {
 			$dataRevenueNet[$ibId][0] = $immoData[$ibId];
 			foreach ($months_list as $month_num => $month_name) {
 				$dataRevenueNet[$ibId][$month_num] = $dataRevenueFiscal[$ibId][$month_num];
-				if (array_key_exists($ibId, $dataPaiement)) {
-					$dataRevenueNet[$ibId][$month_num] -= (float)$dataChargeNd[$ibId][$month_num];
+				if (array_key_exists($ibId, $receiptData)) {
+					$dataRevenueNet[$ibId][$month_num] -= (float)$nonDeductibleCostData[$ibId][$month_num];
 				}
 			}
 		}

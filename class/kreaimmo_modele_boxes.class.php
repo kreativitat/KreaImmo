@@ -167,15 +167,15 @@ class KreaImmoModeleBoxes
             dol_syslog(get_class($this).'::showBox');
 
             // Define nbcol and nblines of the box to show
-            $nbcol=0;
-            if (isset($contents[0])) $nbcol=count($contents[0]);
-            $nblines=count($contents);
+            $columnCount=0;
+            if (isset($contents[0])) $columnCount=count($contents[0]);
+            $lineCount=count($contents);
 
             $out.= "\n<!-- Box ".get_class($this)." start -->\n";
 
             $out.= '<div class="box boxdraggable" id="boxto_'.$this->box_id.'">'."\n";
 
-            if (! empty($head['text']) || ! empty($head['sublink']) || ! empty($head['subpicto']) || $nblines)
+            if (! empty($head['text']) || ! empty($head['sublink']) || ! empty($head['subpicto']) || $lineCount)
             {
                 $out.= '<table summary="boxtable'.$this->box_id.'" width="100%" class="noborder boxtable" style="border-color:'.$backgroundcolor.';border-radius: .25rem;">'."\n";
             }
@@ -185,7 +185,7 @@ class KreaImmoModeleBoxes
             {
                 $out.= '<tr class="liste_titre box_titre" style="background-color: '.$backgroundcolor.';color: '.$color.';">';
                 $out.= '<td';
-                if ($nbcol > 0) { $out.= ' colspan="'.$nbcol.'"'; }
+                if ($columnCount > 0) { $out.= ' colspan="'.$columnCount.'"'; }
                 $out.= '>';
                 if ($conf->use_javascript_ajax)
                 {
@@ -222,10 +222,10 @@ class KreaImmoModeleBoxes
             }
 
             // Show box lines
-            if ($nblines)
+            if ($lineCount)
             {
                 // Loop on each record
-                for ($i=0, $n=$nblines; $i < $n; $i++)
+                for ($i=0, $n=$lineCount; $i < $n; $i++)
                 {
                     if (isset($contents[$i]))
                     {
@@ -234,8 +234,8 @@ class KreaImmoModeleBoxes
                         else $out.= '<tr class="oddeven">';
 
                         // Loop on each TD
-                        $nbcolthisline=count($contents[$i]);
-                        for ($j=0; $j < $nbcolthisline; $j++) {
+                        $rowColumnCount=count($contents[$i]);
+                        for ($j=0; $j < $rowColumnCount; $j++) {
                             // Define tdparam
                             $tdparam='';
                             if (isset($contents[$i][$j]['td'])) $tdparam.=' '.$contents[$i][$j]['td'];
@@ -294,13 +294,13 @@ class KreaImmoModeleBoxes
                 }
             }
 
-            if (! empty($head['text']) || ! empty($head['sublink']) || ! empty($head['subpicto']) || $nblines)
+            if (! empty($head['text']) || ! empty($head['sublink']) || ! empty($head['subpicto']) || $lineCount)
             {
                 $out.= "</table>\n";
             }
 
             // If invisible box with no contents
-            if (empty($head['text']) && empty($head['sublink']) && empty($head['subpicto']) && ! $nblines) $out.= "<br>\n";
+            if (empty($head['text']) && empty($head['sublink']) && empty($head['subpicto']) && ! $lineCount) $out.= "<br>\n";
 
             $out.= "</div>\n";
 

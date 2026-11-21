@@ -113,7 +113,7 @@ print '<td align="center">' . $langs->trans("November") . '</td>';
 print '<td align="center">' . $langs->trans("December") . '</td>';
 print '<td align="center">' . $langs->trans("Total") . '</td></tr>';
 
-$sql = "SELECT so.nom AS fournisseur, ii.label AS nom_immeuble,";
+$sql = "SELECT so.nom AS supplier_name, ii.label AS building_label,";
 $sql .= "  ROUND(SUM(IF(MONTH(ic.date_creation)=1,ic.amount,0)),2) AS 'Janvier',";
 $sql .= "  ROUND(SUM(IF(MONTH(ic.date_creation)=2,ic.amount,0)),2) AS 'Fevrier',";
 $sql .= "  ROUND(SUM(IF(MONTH(ic.date_creation)=3,ic.amount,0)),2) AS 'Mars',";
@@ -188,7 +188,7 @@ print '<td align="center">' . $langs->trans("November") . '</td>';
 print '<td align="center">' . $langs->trans("December") . '</td>';
 print '<td align="center">' . $langs->trans("Total") . '</td></tr>';
 
-$sql = "SELECT ii.label AS nom_immeuble,";
+$sql = "SELECT ii.label AS building_label,";
 $sql .= "  ROUND(SUM(IF(MONTH(ic.date_creation)=1,ic.amount,0)),2) AS 'Janvier',";
 $sql .= "  ROUND(SUM(IF(MONTH(ic.date_creation)=2,ic.amount,0)),2) AS 'Fevrier',";
 $sql .= "  ROUND(SUM(IF(MONTH(ic.date_creation)=3,ic.amount,0)),2) AS 'Mars',";
@@ -251,9 +251,9 @@ print '</td></tr></table>';
 	print '<table class="border" width="100%">';
 	print '<tr class="liste_titre"><td colspan=3>' . $langs->trans("LinkedDocuments") . '</td></tr>';
 	// afficher
-	$legende = $langs->trans("Ouvrir");
+	$linkTitle = $langs->trans("Ouvrir");
 	print '<tr><td width="200" align="center">' . $langs->trans("ChargeFourn") . '</td><td> ';
-	print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=kreaimmo&file=chargefourn/chargefourn_' . $year_start . '.pdf" alt="' . $legende . '" title="' . $legende . '">';
+	print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=kreaimmo&file=chargefourn/chargefourn_' . $year_start . '.pdf" alt="' . $linkTitle . '" title="' . $linkTitle . '">';
 	print '<img src="' . DOL_URL_ROOT . '/theme/' . $conf->theme . '/img/pdf2.png" border="0" align="absmiddle" hspace="2px" ></a>';
 	print '</td></tr></table>';
 }

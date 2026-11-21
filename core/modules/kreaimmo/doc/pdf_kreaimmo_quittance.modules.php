@@ -169,7 +169,7 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 	 * file Name of file to generate
 	 * \return int 1=ok, 0=ko
 	 */
-	function write_file($object, $outputlangs, $file='', $socid=null, $courrier=null)
+	function write_file($object, $outputlangs, $file='', $socid=null, $letter=null)
 	{
 		global $user, $langs, $conf, $mysoc, $hookmanager;
 
@@ -253,15 +253,15 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 			$reshook=$hookmanager->executeHooks('beforePDFCreation',$parameters,$object,$action);    // Note that $action and $object may have been modified by some hooks
 
 			// Set nblignes with the new facture lines content after hook
-			$nblignes = count($object->lines);
-			//$nbpayments = count($object->getListOfPayments()); TODO : add method
+			$lineCount = count($object->lines);
+			//$paymentCount = count($object->getListOfPayments()); TODO : add method
 
 			// Create pdf instance
 			$pdf=pdf_getInstance($this->format);
 			$default_font_size = pdf_getPDFFontSize($outputlangs);	// Must be after pdf_getInstance
 			$pdf->SetAutoPageBreak(1, 0);
 
-			//$heightforinfotot = 50+(4*$nbpayments);	// Height reserved to output the info and total part and payment part
+			//$heightforinfotot = 50+(4*$paymentCount);	// Height reserved to output the info and total part and payment part
 			//$heightforfreetext= (isset($conf->global->MAIN_PDF_FREETEXT_HEIGHT)?$conf->global->MAIN_PDF_FREETEXT_HEIGHT:5);	// Height reserved to output the free text on last page
 			$heightforfooter = $this->marge_basse + (empty($conf->global->MAIN_GENERATE_DOCUMENTS_SHOW_FOOT_DETAILS)?12:22);	// Height reserved to output the footer (value include bottom margin)
 
@@ -280,7 +280,7 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 			}
 
 			$pdf->Open();
-			$pagenb = 0;
+			$pageNumber = 0;
 
 			$pdf->SetTitle($outputlangs->convToOutputCharset($object->label));
 			$pdf->SetSubject($outputlangs->transnoentities("Quittance"));
@@ -298,22 +298,22 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 
 			$property = $this->documentProperty;
 
-			$paiement = new KreaImmoPayment($this->db);
-			$result = $paiement->fetch_by_loyer($object->id);
+			$payment = new KreaImmoPayment($this->db);
+			$result = $payment->fetch_by_loyer($object->id);
 
 			if (! empty($object->id))
 			{
 				// New page
 				$pdf->AddPage();
-				$pagenb ++;
+				$pageNumber ++;
 				$this->_pagehead($pdf, $object, 1, $outputlangs);
 				$pdf->SetFont(pdf_getPDFFont($outputlangs), '', 9);
 				$pdf->MultiCell(0, 3, '', 0, 'J');
 				$pdf->SetTextColor(0, 0, 0);
 
-				$hautcadre=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 38 : 40;
+				$frameHeight=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 38 : 40;
 				$widthbox = $this->page_largeur - $this->marge_gauche - $this->marge_droite;
-				$posY = $this->marge_haute + $hautcadre +50;
+				$posY = $this->marge_haute + $frameHeight +50;
 				$posX = $this->marge_gauche;
 
 
@@ -344,8 +344,8 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 				$posY = $pdf->getY();
 				$pdf->SetXY($posX, $posY);
 
-				$numquittance = 'Quittance n°: ' . 'ILQ' . $object->id;
-				$pdf->MultiCell($widthbox, 3, $outputlangs->convToOutputCharset($numquittance), 1, 'ID');
+				$receiptNumber = 'Quittance n°: ' . 'ILQ' . $object->id;
+				$pdf->MultiCell($widthbox, 3, $outputlangs->convToOutputCharset($receiptNumber), 1, 'ID');
 				*/
 
 				$posY = $pdf->getY();
@@ -360,13 +360,13 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 
 				$text = 'Reçu de ' . $renter->getFullName($outputlangs). ' la somme de ' . $amountalreadypaid . "\n";
 				;
-//var_dump($paiement);exit;
-				$dtpaiement = $paiement->date_payment;
+//var_dump($payment);exit;
+				$paymentDate = $payment->date_payment;
 
-				if (empty($dtpaiement)) {
-					$dtpaiement = $object->date_echeance;
+				if (empty($paymentDate)) {
+					$paymentDate = $object->date_echeance;
 				}
-				$text .= 'le ' . dol_print_date($dtpaiement, 'day') . ' pour loyer et accessoires des locaux sis à : ' . $property->address . ' en paiement du terme du ' . dol_print_date($object->date_start, 'daytext') . ' au ' . dol_print_date($object->date_end, 'daytext') . "\n";
+				$text .= 'le ' . dol_print_date($paymentDate, 'day') . ' pour loyer et accessoires des locaux sis à : ' . $property->address . ' en paiement du terme du ' . dol_print_date($object->date_start, 'daytext') . ' au ' . dol_print_date($object->date_end, 'daytext') . "\n";
 
 				$pdf->MultiCell($widthbox, 0, $outputlangs->convToOutputCharset($text), 1, 'L');
 
@@ -406,7 +406,7 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 					$num = $this->db->num_rows($resql);
 					$i = 0;
 					$total = 0;
-					$totalpaye = 0;
+					$totalPaid = 0;
 					$text .= '<tr>';
 					$text .= '<td align="left">' . $langs->trans("DatePayment") . '</td>';
 					//$text .= '<td align="left">' . $langs->trans("Commentaire") . '</td>';
@@ -423,19 +423,19 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 						//$text .= '<td>' . $objp->type . "</td>";
 						$text .= '<td align="right">' . $objp->type .' '. price($objp->amount) . ' ' . $langs->trans("Currency" . $conf->currency) . "</td>";
 						$text .= "</tr>";
-						$totalpaye += (float) $objp->amount;
+						$totalPaid += (float) $objp->amount;
 						$i ++;
 					}
 
 					if ($object->status == 0)
 					{
-						$text .= "<br><tr><td align=\"left\">" . $langs->trans("AlreadyPaid") . " :</td><td align=\"right\">" . price($totalpaye) . " " . $langs->trans("Currency" . $conf->currency) . "</td></tr>";
+						$text .= "<br><tr><td align=\"left\">" . $langs->trans("AlreadyPaid") . " :</td><td align=\"right\">" . price($totalPaid) . " " . $langs->trans("Currency" . $conf->currency) . "</td></tr>";
 						$text .= "<tr><td align=\"left\">" . $langs->trans("AmountExpected") . " :</td><td align=\"right\">" . price($object->total_amount) . " " . $langs->trans("Currency" . $conf->currency) . "</td></tr>";
 
-						$resteapayer = $object->total_amount - $totalpaye;
+						$remainingToPay = $object->total_amount - $totalPaid;
 
 						$text .= "<tr><td align=\"left\">" . $langs->trans("RemainderToPay") . " :</td>";
-						$text .= "<td align=\"right\">" . price($resteapayer, 2) . " " . $langs->trans("Currency" . $conf->currency) . "</td></tr>";
+						$text .= "<td align=\"right\">" . price($remainingToPay, 2) . " " . $langs->trans("Currency" . $conf->currency) . "</td></tr>";
 					}
 
 					$this->db->free($resql);
@@ -556,7 +556,7 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 				// Tableau total Charge
 				/*$sql = " SELECT YEAR(echeance) as annee, SUM(charges) as accompte,";
 				$sql .= " SUM(charge_ex) as charge,";
-				$sql .= " GROUP_CONCAT(CommCharge SEPARATOR '$') as CommCharge";
+				$sql .= " GROUP_CONCAT(CommCharge SEPARATOR '$') as charge_comments";
 				$sql .= " FROM " . MAIN_DB_PREFIX . "immo_loyer";
 				$sql .= " WHERE local_id=" . $object->local_id . " AND locataire_id=" . $object->locataire_id;
 				$sql .= " GROUP BY YEAR(echeance)";
@@ -599,19 +599,19 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 							$text .= "<td align=\"left\">" . price($objp->accompte) . ' ' . $langs->trans("Currency" . $conf->currency) . "</td>";
 							$text .= "<td align=\"left\">" . price($objp->charge - $objp->accompte) . ' ' . $langs->trans("Currency" . $conf->currency) . "</td>";
 
-							if (! empty($objp->CommCharge)) {
-								$comm_array = explode('$', $objp->CommCharge);
+							if (! empty($objp->charge_comments)) {
+								$chargeComments = explode('$', $objp->charge_comments);
 							}
-							$commentaire_charge = array ();
-							if (is_array($comm_array) && count($comm_array) > 0) {
-								foreach ( $comm_array as $txt_com ) {
-									if (! empty($txt_com)) {
-										$commentaire_charge[] = $txt_com;
+							$chargeCommentLines = array ();
+							if (is_array($chargeComments) && count($chargeComments) > 0) {
+								foreach ( $chargeComments as $chargeComment ) {
+									if (! empty($chargeComment)) {
+										$chargeCommentLines[] = $chargeComment;
 									}
 								}
 							}
 
-							$text .= "<td align=\"left\">" . implode('<br>', $commentaire_charge) . "</td>";
+							$text .= "<td align=\"left\">" . implode('<br>', $chargeCommentLines) . "</td>";
 
 							$text .= "</tr>";
 						}
@@ -771,7 +771,7 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 				$owner->country_code=$tmparray['code'];
 				$owner->country=$tmparray['label'];
 			}
-			$carac_emetteur = dol_format_address($owner, 1, "\n", $outputlangs);
+			$senderAddress = dol_format_address($owner, 1, "\n", $outputlangs);
 
 			// Show sender
 			$posy=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 40 : 42;
@@ -779,7 +779,7 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 			$posx=$this->marge_gauche;
 			if (! empty($conf->global->MAIN_INVERT_SENDER_RECIPIENT)) $posx=$this->page_largeur-$this->marge_droite-80;
 
-			$hautcadre=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 38 : 40;
+			$frameHeight=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 38 : 40;
 			$widthrecbox=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 92 : 82;
 
 
@@ -791,7 +791,7 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 			$posy=$pdf->getY();
 			$pdf->SetXY($posx, $posy);
 			$pdf->SetFillColor(230, 230, 230);
-			$pdf->MultiCell($widthrecbox, $hautcadre, "", 1, 'R', 1);
+			$pdf->MultiCell($widthrecbox, $frameHeight, "", 1, 'R', 1);
 			$pdf->SetTextColor(0, 0, 60);
 
 			// Show sender name
@@ -803,18 +803,18 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 			// Show sender information
 			$pdf->SetXY($posx+2, $posy);
 			$pdf->SetFont('', '', $default_font_size - 1);
-			$pdf->MultiCell($widthrecbox-2, 4, $carac_emetteur, 0, 'L');
+			$pdf->MultiCell($widthrecbox-2, 4, $senderAddress, 0, 'L');
 			$posy=$pdf->getY();
 
 
 			//Recipient name
 			$renter = $this->documentRenter;
-			$carac_client_name= $outputlangs->convToOutputCharset($renter->getFullName($outputlangs));
+			$recipientName= $outputlangs->convToOutputCharset($renter->getFullName($outputlangs));
 
 			$property = $this->documentProperty;
-			$carac_client = $property->label . "\n";
-			$carac_client .= $property->address . "\n";
-			$carac_client .= $property->zip . ' ' . $property->town;
+			$recipientAddress = $property->label . "\n";
+			$recipientAddress .= $property->address . "\n";
+			$recipientAddress .= $property->zip . ' ' . $property->town;
 
 			// Show recipient
 			$widthrecbox=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 92 : 100;
@@ -830,19 +830,19 @@ class pdf_kreaimmo_quittance extends ModelePDFKreaImmo
 			$pdf->SetXY($posx, $posy-5);
 			$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset('Locataire Destinataire'), 1, 'C');
 			$posy=$pdf->getY();
-			$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre);
+			$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight);
 
 			// Show recipient name
 			$pdf->SetXY($posx+2, $posy+3);
 			$pdf->SetFont('', 'B', $default_font_size);
-			$pdf->MultiCell($widthrecbox, 2, $carac_client_name, 0, 'L');
+			$pdf->MultiCell($widthrecbox, 2, $recipientName, 0, 'L');
 
 			$posy = $pdf->getY();
 
 			// Show recipient information
 			$pdf->SetFont('', '', $default_font_size - 1);
 			$pdf->SetXY($posx+2, $posy);
-			$pdf->MultiCell($widthrecbox, 4, $carac_client, 0, 'L');
+			$pdf->MultiCell($widthrecbox, 4, $recipientAddress, 0, 'L');
 
 
 		}

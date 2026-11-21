@@ -73,11 +73,11 @@ $cancel     = GETPOST('cancel', 'aZ09');
 $backtopage = GETPOST('backtopage', 'alpha');
 $socid 		= GETPOST('socid', 'int');
 $accountid	= GETPOST('accountid', 'int');
-$fk_mode_reglement	= GETPOST("fk_mode_reglement");
+$paymentMethodId	= GETPOST("fk_mode_reglement");
 $receipt_id = GETPOST('receipt', 'int');
 
-$search_loyer = GETPOST('search_loyer', 'alpha');
-$search_local = GETPOST('search_local', 'alpha');
+$searchReceipt = GETPOST('search_loyer', 'alpha');
+$searchProperty = GETPOST('search_local', 'alpha');
 $search_renter = GETPOST('search_renter', 'alpha');
 
 $button_search_x = GETPOST('button_search_x', 'alpha');
@@ -379,11 +379,11 @@ if (empty($reshook)) {
 		$payment->fk_renter 	= GETPOST("fk_renter");
 		$payment->fk_soc 		= GETPOST("fk_soc");
 		$payment->fk_owner 		= GETPOST("fk_owner");
-		$payment->date_echeance = $date_echeance;
+		$payment->date_echeance = $dueDate;
 		$payment->note_public 	= GETPOST("note_public");
 		$payment->status 		= GETPOST("status");
 		$payment->date_payment 	= $date_payment;
-		$payment->fk_mode_reglement = $fk_mode_reglement;
+		$payment->fk_mode_reglement = $paymentMethodId;
 
 		$result = $payment->update($user);
 
@@ -847,9 +847,9 @@ if ($action == 'createall') {
 	/*
 	 * List receipt
 	 */
-	$sql = "SELECT rec.rowid as reference, rec.label as receiptname, loc.lastname as nom, ";
-	$sql .= " prop.address, prop.label as local, loc.status as status, rec.total_amount as total, rec.partial_payment, ";
-	$sql .= " rec.balance, rec.fk_renter as reflocataire, rec.fk_property as reflocal, rec.fk_owner,";
+	$sql = "SELECT rec.rowid as reference, rec.label as receiptname, loc.lastname as renter_name, ";
+	$sql .= " prop.address, prop.label as property_label, loc.status as status, rec.total_amount as total, rec.partial_payment, ";
+	$sql .= " rec.balance, rec.fk_renter as renter_id, rec.fk_property as property_id, rec.fk_owner,";
 	$sql .= " rec.fk_rent as refcontract, rent.preavis";
 	$sql .= " FROM " . MAIN_DB_PREFIX . "kreaimmo_immoreceipt as rec";
 	//$sql .= " INNER JOIN " . MAIN_DB_PREFIX . "kreaimmo_immopayment as p ON rec.rowid = p.fk_receipt";
@@ -859,13 +859,13 @@ if ($action == 'createall') {
 	$sql .= " WHERE rec.entity = ".((int) $conf->entity)." AND rec.paye <> 1 AND rent.preavis = 1 ";
 	//print_r($sql);exit;
 
-	if (!empty($search_loyer)) {
-		$sql .=  natural_search('rec.label', $search_loyer);
-		$param .= '&search_loyer='.$search_loyer;
+	if (!empty($searchReceipt)) {
+		$sql .=  natural_search('rec.label', $searchReceipt);
+		$param .= '&search_loyer='.$searchReceipt;
 	}
-	if (!empty($search_local)) {
-		$sql .=  natural_search('prop.label', $search_local);
-		$param .= '&search_local='.$search_local;
+	if (!empty($searchProperty)) {
+		$sql .=  natural_search('prop.label', $searchProperty);
+		$param .= '&search_local='.$searchProperty;
 	}
 	if (!empty($search_renter)) {
 		$sql .=  natural_search('loc.lastname', $search_renter);
@@ -886,9 +886,9 @@ if ($action == 'createall') {
 
 		// Create empty PDF
 		$formatarray = pdf_getFormat();
-		$page_largeur = $formatarray['width'];
-		$page_hauteur = $formatarray['height'];
-		$format = array($page_largeur, $page_hauteur);
+		$pageWidth = $formatarray['width'];
+		$pageHeight = $formatarray['height'];
+		$format = array($pageWidth, $pageHeight);
 
 		$pdf = pdf_getInstance($format);
 
@@ -977,15 +977,15 @@ if ($action == 'createall') {
 		$num = $db->num_rows($resql);
 
 		$i = 0;
-		$total = $total_montant_tot = $total_payed = $total_due = 0;
+		$total = $totalAmount = $total_payed = $total_due = 0;
 
 
 		print '<br><table class="noborder" width="100%">';
 
 
 		print '<tr class="liste_titre">';
-		print '<td><input type="text" name="search_loyer" id="search_loyer" value="'.$search_loyer.'"></td>';
-		print '<td><input type="text" name="search_local" id="search_local" value="'.$search_local.'"></td>';
+		print '<td><input type="text" name="search_loyer" id="search_loyer" value="'.$searchReceipt.'"></td>';
+		print '<td><input type="text" name="search_local" id="search_local" value="'.$searchProperty.'"></td>';
 		print '<td><input type="text" name="search_renter" id="search_renter" value="'.$search_renter.'"></td>';
 		print '<td></td>';
 		print '<td></td>';
@@ -1018,16 +1018,16 @@ if ($action == 'createall') {
 				print '<tr class="oddeven">';
 
 				print '<td>' . $objp->receiptname . '</td>';
-				print '<td>' . $objp->local . '</td>';
-				print '<td>' . $objp->nom . '</td>';
+				print '<td>' . $objp->property_label . '</td>';
+				print '<td>' . $objp->renter_name . '</td>';
 
 				print '<td class="left">' . price($objp->total) . '</td>';
 				print '<td class="left">' . price($objp->partial_payment) . '</td>';
 				print '<td class="left">' . price($objp->balance) . '</td>';
 
 				print '<input type="hidden" name="fk_rent_' . $objp->reference . '" size="10" value="' . $objp->refcontract . '">';
-				print '<input type="hidden" name="fk_property_' . $objp->reference . '" size="10" value="' . $objp->reflocal . '">';
-				print '<input type="hidden" name="fk_renter_' . $objp->reference . '" size="10" value="' . $objp->reflocataire . '">';
+				print '<input type="hidden" name="fk_property_' . $objp->reference . '" size="10" value="' . $objp->property_id . '">';
+				print '<input type="hidden" name="fk_renter_' . $objp->reference . '" size="10" value="' . $objp->renter_id . '">';
 				print '<input type="hidden" name="receipt_' . $objp->reference . '" size="10" value="' . $objp->reference . '">';
 				print '<input type="hidden" name="fk_owner_' . $objp->reference . '" size="10" value="' . $objp->fk_owner . '">';
 
@@ -1048,7 +1048,7 @@ if ($action == 'createall') {
 
 				$i++;
 
-				$total_montant_tot += $objp->total;
+				$totalAmount += $objp->total;
 				$total_payed += $objp->partial_payment;
 				$total_due += $objp->balance;
 			}
@@ -1059,7 +1059,7 @@ if ($action == 'createall') {
 		print '<tr class="liste_total">';
 		print '<td class="left">' . $langs->trans("Total") . '</td>';
 		print '<td colspan="2"></td>';
-		print '<td class="left">'.price($total_montant_tot).'</td>';
+		print '<td class="left">'.price($totalAmount).'</td>';
 		print '<td class="left">'.price($total_payed).'</td>';
 		print '<td class="left">'.price($total_due).'</td>';
 		print '<td class="left"></td>';
@@ -1116,9 +1116,9 @@ if ($action == 'update') {
 	print '<input type="hidden" name="fk_renter" size="10" value="' . $receipt->fk_renter . '">';
 	print '<input type="hidden" name="fk_receipt" size="10" value="' . $id . '">';
 
-	print '<tr><td class="titlefield">' . $langs->trans("NomAppartement") . '</td><td>' . $receipt->nomlocal . '</td></tr>';
+	print '<tr><td class="titlefield">' . $langs->trans("NomAppartement") . '</td><td>' . $receipt->property_label . '</td></tr>';
 
-	print '<tr><td>' . $langs->trans("NomLocataire") . '</td><td>' . $receipt->nomlocataire . '</td></tr>';
+	print '<tr><td>' . $langs->trans("NomLocataire") . '</td><td>' . $receipt->renter_name . '</td></tr>';
 
 	print '<tr><td>' . $langs->trans("RefLoyer") . '</td><td>' . $receipt->name . '</td></tr>';
 

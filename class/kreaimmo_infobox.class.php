@@ -208,13 +208,13 @@ class KreaImmoInfoBox
         $result = $db->query($sql);
         if ($result)
         {
-            $colonnes=explode('-', $boxorder);
-            foreach ($colonnes as $collist)
+            $columns=explode('-', $boxorder);
+            foreach ($columns as $collist)
             {
                 $part=explode(':', $collist);
-                $colonne=$part[0];
+                $column=$part[0];
                 $list=$part[1];
-                dol_syslog(get_class()."::saveboxorder column=".$colonne.' list='.$list);
+                dol_syslog(get_class()."::saveboxorder column=".$column.' list='.$list);
 
                 $i=0;
                 $listarray=explode(',', $list);
@@ -230,7 +230,7 @@ class KreaImmoInfoBox
                         $sql.= " values (";
                         $sql.= " ".$id.",";
                         $sql.= " ".$zone.",";
-                        $sql.= " '".$colonne.$ii."',";
+                        $sql.= " '".$column.$ii."',";
                         $sql.= " ".$userid.",";
                         $sql.= " ".$conf->entity;
                         $sql.= ")";

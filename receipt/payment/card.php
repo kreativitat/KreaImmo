@@ -249,7 +249,7 @@ print '<table class="border" width="100%">';
 print '<tr><td class="titlefield">'.$langs->trans('Date').'</td><td>'.dol_print_date($object->date_payment, 'day').'</td></tr>';
 
 // Mode reglement
-$sql = "SELECT p.rowid, p.date_payment as dp, p.fk_mode_reglement, c.code as type_code, c.libelle as mode_reglement_label";
+$sql = "SELECT p.rowid, p.date_payment as dp, p.fk_mode_reglement, c.code as type_code, c.libelle as payment_method_label";
 $sql .= " FROM ".MAIN_DB_PREFIX."kreaimmo_immopayment as p";
 $sql .= " LEFT JOIN " . MAIN_DB_PREFIX . "c_paiement as c ON p.fk_mode_reglement = c.id";
 $sql .= " WHERE p.rowid = ".$id;
@@ -259,10 +259,10 @@ $resql = $db->query($sql);
 if ($resql)
 {
 	$obj=$db->fetch_object($resql);
-	$fk_mode_reglement = $obj->mode_reglement_label;
+	$paymentMethodLabel = $obj->payment_method_label;
 	$db->free();
 }
-print '<tr><td>'.$langs->trans('Mode').'</td><td>'.$fk_mode_reglement.'</td></tr>';
+print '<tr><td>'.$langs->trans('Mode').'</td><td>'.$paymentMethodLabel.'</td></tr>';
 
 // Amount
 print '<tr><td>'.$langs->trans('Amount').'</td><td>'.price($object->amount, 0, $outputlangs, 1, -1, -1, $conf->currency).'</td></tr>';
@@ -348,7 +348,7 @@ if ($action == 'createall')
 	/*
 	 * List receipt
 	 */
-	$sql = "SELECT rec.rowid as reference, rec.ref as receiptname, loc.lastname as nom, l.address  , l.label as local, loc.status as status, rec.total_amount as total, rec.partial_payment, rec.balance ,  rec.fk_renter as reflocataire, rec.fk_property as reflocal, rec.fk_rent as refcontract , c.preavis";
+	$sql = "SELECT rec.rowid as reference, rec.ref as receiptname, loc.lastname as renter_name, l.address  , l.label as property_label, loc.status as status, rec.total_amount as total, rec.partial_payment, rec.balance ,  rec.fk_renter as renter_id, rec.fk_property as property_id, rec.fk_rent as refcontract , c.preavis";
 	$sql .= " FROM " . MAIN_DB_PREFIX . "kreaimmo_immoreceipt rec";
 	$sql .= " , " . MAIN_DB_PREFIX . "kreaimmo_immorenter as loc";
 	$sql .= " , " . MAIN_DB_PREFIX . "kreaimmo_immoproperty as l";
@@ -381,16 +381,16 @@ if ($action == 'createall')
 				print '<tr class="oddeven">';
 
 				print '<td>' . $objp->receiptname . '</td>';
-				print '<td>' . $objp->local . '</td>';
-				print '<td>' . $objp->nom . '</td>';
+				print '<td>' . $objp->property_label . '</td>';
+				print '<td>' . $objp->renter_name . '</td>';
 
 				print '<td align="right">' . price($objp->total) . '</td>';
 				print '<td align="right">' . price($objp->paiepartiel) . '</td>';
 				print '<td align="right">' . price($objp->balance) . '</td>';
 
 					print '<input type="hidden" name="fk_rent' . $objp->reference . '" size="10" value="' . $objp->refcontract . '">';
-					print '<input type="hidden" name="fk_property_' . $objp->reference . '" size="10" value="' . $objp->reflocal . '">';
-					print '<input type="hidden" name="fk_renter_' . $objp->reference . '" size="10" value="' . $objp->reflocataire . '">';
+					print '<input type="hidden" name="fk_property_' . $objp->reference . '" size="10" value="' . $objp->property_id . '">';
+					print '<input type="hidden" name="fk_renter_' . $objp->reference . '" size="10" value="' . $objp->renter_id . '">';
 					print '<input type="hidden" name="receipt_' . $objp->reference . '" size="10" value="' . $objp->reference . '">';
 
 				// Colonne imput income

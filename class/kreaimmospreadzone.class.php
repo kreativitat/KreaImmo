@@ -764,9 +764,9 @@ class KreaImmoSpreadZone extends CommonObjectKreaImmo
 				$filearray = dol_dir_list($upload_dir, "files");
 				$filename = $filearray[0]['name'];
 				if (!empty($filename)) {
-					$pospoint = strpos($filearray[0]['name'], '.');
+					$extensionPosition = strpos($filearray[0]['name'], '.');
 
-					$pathtophoto = $class.'/'.$this->ref.'/thumbs/'.substr($filename, 0, $pospoint).'_mini'.substr($filename, $pospoint);
+					$pathtophoto = $class.'/'.$this->ref.'/thumbs/'.substr($filename, 0, $extensionPosition).'_mini'.substr($filename, $extensionPosition);
 					if (empty($conf->global->{strtoupper($module.'_'.$class).'_FORMATLISTPHOTOSASUSERS'})) {
 						$result .= '<div class="floatleft inline-block valignmiddle divphotoref"><div class="photoref"><img class="photo'.$module.'" alt="No photo" border="0" src="'.DOL_URL_ROOT.'/viewimage.php?modulepart='.$module.'&entity='.$conf->entity.'&file='.urlencode($pathtophoto).'"></div></div>';
 					} else {
@@ -999,7 +999,7 @@ class KreaImmoSpreadZone extends CommonObjectKreaImmo
 	/**
 	 *  Create a document onto disk according to template module.
 	 *
-	 *  @param	    string		$modele			Force template to use ('' to not force)
+	 *  @param	    string		$modelName			Force template to use ('' to not force)
 	 *  @param		Translate	$outputlangs	objet lang a utiliser pour traduction
 	 *  @param      int			$hidedetails    Hide details of lines
 	 *  @param      int			$hidedesc       Hide description
@@ -1007,7 +1007,7 @@ class KreaImmoSpreadZone extends CommonObjectKreaImmo
 	 *  @param      null|array  $moreparams     Array to provide more information
 	 *  @return     int         				0 if KO, 1 if OK
 	 */
-	public function generateDocument($modele, $outputlangs, $hidedetails = 0, $hidedesc = 0, $hideref = 0, $moreparams = null)
+	public function generateDocument($modelName, $outputlangs, $hidedetails = 0, $hidedesc = 0, $hideref = 0, $moreparams = null)
 	{
 		global $conf, $langs;
 
@@ -1016,20 +1016,20 @@ class KreaImmoSpreadZone extends CommonObjectKreaImmo
 
 		$langs->load("kreaimmo@kreaimmo");
 
-		if (!dol_strlen($modele)) {
-			$modele = 'standard_immospreadzone';
+		if (!dol_strlen($modelName)) {
+			$modelName = 'standard_immospreadzone';
 
 			if (!empty($this->model_pdf)) {
-				$modele = $this->model_pdf;
+				$modelName = $this->model_pdf;
 			} elseif (!empty($conf->global->IMMOSPREADZONE_ADDON_PDF)) {
-				$modele = $conf->global->IMMOSPREADZONE_ADDON_PDF;
+				$modelName = $conf->global->IMMOSPREADZONE_ADDON_PDF;
 			}
 		}
 
 		$modelpath = "core/modules/kreaimmo/doc/";
 
-		if ($includedocgeneration && !empty($modele)) {
-			$result = $this->commonGenerateDocument($modelpath, $modele, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
+		if ($includedocgeneration && !empty($modelName)) {
+			$result = $this->commonGenerateDocument($modelpath, $modelName, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
 		}
 
 		return $result;

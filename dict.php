@@ -381,23 +381,23 @@ $formadmin = new FormAdmin($db);
 
 llxHeader();
 
-$titre = $langs->trans("DictionarySetup");
+$pageTitle = $langs->trans("DictionarySetup");
 $linkback = '';
 if ($id) {
-	$titre .= ' - ' . $langs->trans($tablib[$id]);
+	$pageTitle .= ' - ' . $langs->trans($tablib[$id]);
 	$linkback = '<a href="' . $_SERVER['PHP_SELF'] . '">' . $langs->trans("BackToDictionaryList") . '</a>';
 }
 $titlepicto = 'title_setup';
 if ($id == 10 && GETPOST('from') == 'accountancy') {
-	$titre = $langs->trans("MenuVatAccounts");
+	$pageTitle = $langs->trans("MenuVatAccounts");
 	$titlepicto = 'title_accountancy';
 }
 if ($id == 7 && GETPOST('from') == 'accountancy') {
-	$titre = $langs->trans("MenuTaxAccounts");
+	$pageTitle = $langs->trans("MenuTaxAccounts");
 	$titlepicto = 'title_accountancy';
 }
 
-print load_fiche_titre($titre, $linkback, $titlepicto);
+print load_fiche_titre($pageTitle, $linkback, $titlepicto);
 
 if (empty($id)) {
 	print $langs->trans("DictionaryDescExtra") . "<br>\n";

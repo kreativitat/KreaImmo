@@ -166,7 +166,7 @@ if ($type_stats=='cost_type') {
 } elseif ($type_stats=='fourn_type') {
 	$fields = "soc.nom";
 }
-$sql = 'SELECT '.$fields.' AS label , ib.label AS nom_immeuble, count(ic.rowid) as nbcost';
+$sql = 'SELECT '.$fields.' AS label , ib.label AS building_label, count(ic.rowid) as nbcost';
 foreach ($months_list as $month_num => $month_name) {
 	$sql .= ', ROUND(SUM(case when MONTH(ic.date_start)=' . $month_num . ' then ic.amount else 0 end),2) AS month_' . $month_num;
 }
@@ -197,7 +197,7 @@ if ($resql) {
 
 		print '<tr class="oddeven"><td>' . $row->label . '</td>';
 		print '<td class="left">' . $row->nbcost . '</td>';
-		print '<td class="left">' . $row->nom_immeuble . '</td>';
+		print '<td class="left">' . $row->building_label . '</td>';
 		foreach ($months_list as $month_num => $month_name) {
 			print '<td align="right">' . price($row->{'month_'.$month_num}) . '</td>';
 			$total += $row->{'month_'.$month_num};

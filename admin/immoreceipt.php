@@ -132,7 +132,7 @@ if ($action == 'updateMask') {
 		setEventMessages($langs->trans("SetupSaved"), null, 'mesgs');
 	}
 } else if ($action == 'specimen') {
-	$modele = GETPOST('module', 'alpha');
+	$documentModel = GETPOST('module', 'alpha');
 
 	$receipt = new KreaImmoReceipt($db);
 	$receipt->initAsSpecimen();
@@ -144,11 +144,11 @@ if ($action == 'updateMask') {
 	$dirmodels = array_merge(array('/'), (array) $conf->modules_parts['models']);
 
 	foreach ($dirmodels as $reldir) {
-		$file = dol_buildpath($reldir . "kreaimmo/core/modules/kreaimmo/doc/pdf_" . $modele . ".modules.php", 0);
+		$file = dol_buildpath($reldir . "kreaimmo/core/modules/kreaimmo/doc/pdf_" . $documentModel . ".modules.php", 0);
 
 		if (file_exists($file)) {
 			$filefound = 1;
-			$classname = "pdf_" . $modele;
+			$classname = "pdf_" . $documentModel;
 			break;
 		}
 	}

@@ -92,8 +92,8 @@ class mod_kreaimmo_standard extends ModeleNumRefKreaImmo
 
         $coyymm = ''; $max = '';
 
-		$posindice = 8;
-		$sql = "SELECT MAX(CAST(SUBSTRING(ref FROM ".$posindice.") AS SIGNED)) as max";
+		$referenceOffset = 8;
+		$sql = "SELECT MAX(CAST(SUBSTRING(ref FROM ".$referenceOffset.") AS SIGNED)) as max";
         $sql.= " FROM ".MAIN_DB_PREFIX."kreaimmo_immoreceipt";
 		$sql.= " WHERE ref LIKE '".$db->escape($this->prefix)."____-%'";
         $sql.= " AND entity = ".$conf->entity;
@@ -126,8 +126,8 @@ class mod_kreaimmo_standard extends ModeleNumRefKreaImmo
 		global $db, $conf;
 
 		// D'abord on recupere la valeur max
-		$posindice = 8;
-		$sql = "SELECT MAX(CAST(SUBSTRING(ref FROM ".$posindice.") AS SIGNED)) as max";
+		$referenceOffset = 8;
+		$sql = "SELECT MAX(CAST(SUBSTRING(ref FROM ".$referenceOffset.") AS SIGNED)) as max";
 		$sql.= " FROM ".MAIN_DB_PREFIX."kreaimmo_immoreceipt";
 		$sql.= " WHERE ref LIKE '".$db->escape($this->prefix)."____-%'";
 		$sql.= " AND entity = ".$conf->entity;
@@ -160,7 +160,7 @@ class mod_kreaimmo_standard extends ModeleNumRefKreaImmo
     /**
      * 	Return next reference not yet used as a reference
      *
-     *  @param	Societe	$objsoc     Object third party
+     *  @param	Societe	$thirdParty     Object third party
      *  @param  object	$object	Object object
      *  @return string      		Next not used reference
      */

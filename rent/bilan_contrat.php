@@ -55,9 +55,9 @@ $limit = $conf->liste_limit;
 
 llxheader ( '', $langs->trans ( "bilancontrat" ), '' );
 
-$contrat = new KreaImmoRent ( $db );
-$result = $contrat->fetch ( $id );
-$head = rent_prepare_head ( $contrat );
+$rentContract = new KreaImmoRent ( $db );
+$result = $rentContract->fetch ( $id );
+$head = rent_prepare_head ( $rentContract );
 
 dol_fiche_head ( $head, 'bilan', $langs->trans ( "Bilan" ), 0, 'agreement' );
 
@@ -73,7 +73,7 @@ $sql .= "ORDER BY date";
 
 $result = $db->query ( $sql );
 if ($result) {
-	$num_lignes = $db->num_rows ( $result );
+	$rowCount = $db->num_rows ( $result );
 	$i = 0;
 
 	print '<table class="border" width="100%">';
@@ -85,7 +85,7 @@ if ($result) {
 	print "</tr>\n";
 
 	$var = True;
-	while ( $i < min ( $num_lignes, $limit ) ) {
+	while ( $i < min ( $rowCount, $limit ) ) {
 
 		$objp = $db->fetch_object ( $result );
 		$var = ! $var;

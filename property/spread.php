@@ -198,7 +198,7 @@ if (!empty($object->lines)) {
 		print '</td>';
 		print '<td align="center" width="100">';
 
-		$value_millieme=GETPOST('property_'.$property->id,'int');
+		$allocationShare=GETPOST('property_'.$property->id,'int');
 		$spreadData = new KreaImmoSpreadZone($db);
 		$data = $spreadData->fetchAll('','',0,0, array('t.fk_property_parent'=>$object->id, 't.fk_property_child'=>$property->id));
 		if (!is_array($data) && $data<0) {
@@ -206,9 +206,9 @@ if (!empty($object->lines)) {
 		} elseif (count($data)>1) {
 			setEventMessages('ProblemInTableSpread',null,'errors');
 		} elseif (!empty($data) && $action!=='save') {
-			$value_millieme=reset($data)->percent_application;
+			$allocationShare=reset($data)->percent_application;
 		}
-		print '<input type="number" name="property_'.$property->id.'" value="'.$value_millieme.'">';
+		print '<input type="number" name="property_'.$property->id.'" value="'.$allocationShare.'">';
 		print '</td></tr>';
 
 	}

@@ -92,13 +92,13 @@ $Immoowners=array();
 $OwnerToValidate=array();
 $OwnersValidated=array();
 $OwnerUpToDate=array();
-$OwnersResiliated=array();
+$terminatedOwners=array();
 
 $ImmoownerType=array();
 
 // Liste les proprietaires
 $sql = "SELECT t.rowid, t.label,";
-$sql.= " d.status, count(d.rowid) as somme";
+$sql.= " d.status, count(d.rowid) as record_count";
 $sql.= " FROM ".MAIN_DB_PREFIX."kreaimmo_immoowner_type as t";
 $sql.= " LEFT JOIN ".MAIN_DB_PREFIX."kreaimmo_immoowner as d";
 $sql.= " ON t.rowid = d.fk_owner_type";
@@ -121,9 +121,9 @@ if ($result)
 		$ownertype->label=$objp->label;
 		$ImmoownerType[$objp->rowid]=$ownertype;
 
-		if ($objp->status == -1) { $OwnerToValidate[$objp->rowid]=$objp->somme; }
-		if ($objp->status == 1)  { $OwnersValidated[$objp->rowid]=$objp->somme; }
-		if ($objp->status == 0)  { $OwnersResiliated[$objp->rowid]=$objp->somme; }
+		if ($objp->status == -1) { $OwnerToValidate[$objp->rowid]=$objp->record_count; }
+		if ($objp->status == 1)  { $OwnersValidated[$objp->rowid]=$objp->record_count; }
+		if ($objp->status == 0)  { $terminatedOwners[$objp->rowid]=$objp->record_count; }
 
 		$i++;
 	}
@@ -134,7 +134,7 @@ $now=dol_now();
 
 // current rule: uptodate = the end date is in future whatever is type
 // old rule: uptodate = if type does not need payment, that end date is null, if type need payment that end date is in future)
-$sql = "SELECT count(*) as somme , d.fk_owner_type";
+$sql = "SELECT count(*) as record_count , d.fk_owner_type";
 $sql.= " FROM ".MAIN_DB_PREFIX."kreaimmo_immoowner as d, ".MAIN_DB_PREFIX."kreaimmo_immoowner_type as t";
 $sql.= " WHERE d.entity IN (".getEntity('kreaimmo_immoowner').")";
 //$sql.= " AND d.statut = 1 AND ((t.subscription = 0 AND d.datefin IS NULL) OR d.datefin >= '".$db->idate($now)."')";
@@ -151,7 +151,7 @@ if ($result)
 	while ($i < $num)
 	{
 		$objp = $db->fetch_object($result);
-		$OwnerUpToDate[$objp->fk_owner_type]=$objp->somme;
+		$OwnerUpToDate[$objp->fk_owner_type]=$objp->record_count;
 		$i++;
 	}
 	$db->free();
@@ -171,10 +171,10 @@ if ($conf->use_javascript_ajax)
     print '<tr class="liste_titre"><th colspan="2">'.$langs->trans("Statistics").'</th></tr>';
     print '<tr><td align="center" colspan="2">';
 
-    $SommeA=0;
-    $SommeB=0;
-    $SommeC=0;
-    $SommeD=0;
+    $totalA=0;
+    $totalB=0;
+    $totalC=0;
+    $totalD=0;
     $total=0;
     $dataval=array();
     $datalabels=array();
@@ -185,19 +185,19 @@ if ($conf->use_javascript_ajax)
         $dataval['draft'][]=array($i,isset($OwnerToValidate[$key])?$OwnerToValidate[$key]:0);
         $dataval['notuptodate'][]=array($i,isset($OwnersValidated[$key])?$OwnersValidated[$key]-(isset($OwnerUpToDate[$key])?$OwnerUpToDate[$key]:0):0);
         $dataval['uptodate'][]=array($i,isset($OwnerUpToDate[$key])?$OwnerUpToDate[$key]:0);
-        $dataval['resiliated'][]=array($i,isset($OwnersResiliated[$key])?$OwnersResiliated[$key]:0);
-        $SommeA+=isset($OwnerToValidate[$key])?$OwnerToValidate[$key]:0;
-        $SommeB+=isset($OwnersValidated[$key])?$OwnersValidated[$key]-(isset($OwnerUpToDate[$key])?$OwnerUpToDate[$key]:0):0;
-        $SommeC+=isset($OwnerUpToDate[$key])?$OwnerUpToDate[$key]:0;
-        $SommeD+=isset($OwnersResiliated[$key])?$OwnersResiliated[$key]:0;
+        $dataval['resiliated'][]=array($i,isset($terminatedOwners[$key])?$terminatedOwners[$key]:0);
+        $totalA+=isset($OwnerToValidate[$key])?$OwnerToValidate[$key]:0;
+        $totalB+=isset($OwnersValidated[$key])?$OwnersValidated[$key]-(isset($OwnerUpToDate[$key])?$OwnerUpToDate[$key]:0):0;
+        $totalC+=isset($OwnerUpToDate[$key])?$OwnerUpToDate[$key]:0;
+        $totalD+=isset($terminatedOwners[$key])?$terminatedOwners[$key]:0;
         $i++;
     }
-    $total = $SommeA + $SommeB + $SommeC + $SommeD;
+    $total = $totalA + $totalB + $totalC + $totalD;
     $dataseries=array();
-    $dataseries[]=array($langs->trans("MenuOwnersNotUpToDate"), round($SommeB));
-    $dataseries[]=array($langs->trans("MenuOwnersUpToDate"), round($SommeC));
-    $dataseries[]=array($langs->trans("OwnersStatusResiliated"), round($SommeD));
-    $dataseries[]=array($langs->trans("OwnersStatusToValid"), round($SommeA));
+    $dataseries[]=array($langs->trans("MenuOwnersNotUpToDate"), round($totalB));
+    $dataseries[]=array($langs->trans("MenuOwnersUpToDate"), round($totalC));
+    $dataseries[]=array($langs->trans("OwnersStatusResiliated"), round($totalD));
+    $dataseries[]=array($langs->trans("OwnersStatusToValid"), round($totalA));
 
     include_once DOL_DOCUMENT_ROOT.'/core/class/dolgraph.class.php';
     $dolgraph = new DolGraph();
@@ -211,7 +211,7 @@ if ($conf->use_javascript_ajax)
 
     print '</td></tr>';
     print '<tr class="liste_total"><td>'.$langs->trans("Total").'</td><td align="right">';
-    print $SommeA+$SommeB+$SommeC+$SommeD;
+    print $totalA+$totalB+$totalC+$totalD;
     print '</td></tr>';
     print '</table>';
     print '</div>';
@@ -364,15 +364,15 @@ foreach ($ImmoownerType as $key => $ownertype)
 	print '<td align="right">'.(isset($OwnerToValidate[$key]) && $OwnerToValidate[$key] > 0?$OwnerToValidate[$key]:'').' '.$staticowner->LibStatut(-1,$ownertype->label,0,3).'</td>';
 	print '<td align="right">'.(isset($OwnersValidated[$key]) && ($OwnersValidated[$key]-(isset($OwnerUpToDate[$key])?$OwnerUpToDate[$key]:0) > 0) ? $OwnersValidated[$key]-(isset($OwnerUpToDate[$key])?$OwnerUpToDate[$key]:0):'').' '.$staticowner->LibStatut(1,$ownertype->label,0,3).'</td>';
 	print '<td align="right">'.(isset($OwnerUpToDate[$key]) && $OwnerUpToDate[$key] > 0 ? $OwnerUpToDate[$key]:'').' '.$staticowner->LibStatut(1,$ownertype->label,$now,3).'</td>';
-	print '<td align="right">'.(isset($OwnersResiliated[$key]) && $OwnersResiliated[$key]> 0 ?$OwnersResiliated[$key]:'').' '.$staticowner->LibStatut(0,$ownertype->label,0,3).'</td>';
+	print '<td align="right">'.(isset($terminatedOwners[$key]) && $terminatedOwners[$key]> 0 ?$terminatedOwners[$key]:'').' '.$staticowner->LibStatut(0,$ownertype->label,0,3).'</td>';
 	print "</tr>\n";
 }
 print '<tr class="liste_total">';
 print '<td class="liste_total">'.$langs->trans("Total").'</td>';
-print '<td class="liste_total" align="right">'.$SommeA.' '.$staticowner->LibStatut(-1,$ownertype->label,0,3).'</td>';
-print '<td class="liste_total" align="right">'.$SommeB.' '.$staticowner->LibStatut(1,$ownertype->label,0,3).'</td>';
-print '<td class="liste_total" align="right">'.$SommeC.' '.$staticowner->LibStatut(1,$ownertype->label,$now,3).'</td>';
-print '<td class="liste_total" align="right">'.$SommeD.' '.$staticowner->LibStatut(0,$ownertype->label,0,3).'</td>';
+print '<td class="liste_total" align="right">'.$totalA.' '.$staticowner->LibStatut(-1,$ownertype->label,0,3).'</td>';
+print '<td class="liste_total" align="right">'.$totalB.' '.$staticowner->LibStatut(1,$ownertype->label,0,3).'</td>';
+print '<td class="liste_total" align="right">'.$totalC.' '.$staticowner->LibStatut(1,$ownertype->label,$now,3).'</td>';
+print '<td class="liste_total" align="right">'.$totalD.' '.$staticowner->LibStatut(0,$ownertype->label,0,3).'</td>';
 print '</tr>';
 
 print "</table>\n";

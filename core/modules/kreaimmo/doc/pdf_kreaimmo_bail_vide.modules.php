@@ -173,7 +173,7 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 	 * file Name of file to generate
 	 * \return int 1=ok, 0=ko
 	 */
-	function write_file($object, $outputlangs, $file = '', $socid = null, $courrier = null)
+	function write_file($object, $outputlangs, $file = '', $socid = null, $letter = null)
 	{
 		global $user, $langs, $conf, $mysoc, $hookmanager;
 
@@ -250,16 +250,16 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 			$reshook=$hookmanager->executeHooks('beforePDFCreation', $parameters, $object, $action);    // Note that $action and $object may have been modified by some hooks
 
 			// Set nblignes with the new facture lines content after hook
-			//$nblignes = count($object->lines);
-			$nblignes=0;
-			//$nbpayments = count($object->getListOfPayments()); TODO : add method
+			//$lineCount = count($object->lines);
+			$lineCount=0;
+			//$paymentCount = count($object->getListOfPayments()); TODO : add method
 
 			// Create pdf instance
 			$pdf=pdf_getInstance($this->format);
 			$default_font_size = pdf_getPDFFontSize($outputlangs);	// Must be after pdf_getInstance
 			$pdf->SetAutoPageBreak(1, 0);
 
-//			$heightforinfotot = 50+(4*$nbpayments);	// Height reserved to output the info and total part and payment part
+//			$heightforinfotot = 50+(4*$paymentCount);	// Height reserved to output the info and total part and payment part
 //			$heightforfreetext= (isset($conf->global->MAIN_PDF_FREETEXT_HEIGHT)?$conf->global->MAIN_PDF_FREETEXT_HEIGHT:5);	// Height reserved to output the free text on last page
 			$heightforfooter = $this->marge_basse + (empty($conf->global->MAIN_GENERATE_DOCUMENTS_SHOW_FOOT_DETAILS)?12:22);	// Height reserved to output the footer (value include bottom margin)
 
@@ -276,7 +276,7 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 			}
 
 			$pdf->Open();
-			$pagenb = 0;
+			$pageNumber = 0;
 
 			if (method_exists($pdf, 'AliasNbPages')) $pdf->AliasNbPages();
 
@@ -303,31 +303,31 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 
 			$property = $this->documentProperty;
 
-			$paiement = new KreaImmoPayment($this->db);
-			$result = $paiement->fetch_by_loyer($object->id);
+			$payment = new KreaImmoPayment($this->db);
+			$result = $payment->fetch_by_loyer($object->id);
 
 			if (! empty($object->id)) {
 				// New page
 				$pdf->AddPage();
 				if (! empty($tplidx)) $pdf->useTemplate($tplidx);
-				$pagenb++;
+				$pageNumber++;
 				$this->_pagehead($pdf, $object, 1, $outputlangs);
 				$pdf->SetFont('', '', $default_font_size - 1);
 				$pdf->SetTextColor(0, 0, 0);
 
-				$tab_top = 90;
-				$tab_top_newpage = (empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)?42:10);
-				$tab_height = 130;
-				$tab_height_newpage = 150;
+				$tableTop = 90;
+				$nextPageTableTop = (empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)?42:10);
+				$tableHeight = 130;
+				$nextPageTableHeight = 150;
 
-				$hautcadre=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 38 : 40;
+				$frameHeight=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 38 : 40;
 				$widthbox = $this->page_largeur - $this->marge_gauche - $this->marge_droite;
-				$posY = $this->marge_haute + $hautcadre +100;
+				$posY = $this->marge_haute + $frameHeight +100;
 				$posX = $this->marge_gauche;
 
-				$iniY = $tab_top + 7;
-				$curY = $tab_top + 7;
-				$nexY = $tab_top + 7;
+				$iniY = $tableTop + 7;
+				$curY = $tableTop + 7;
+				$nexY = $tableTop + 7;
 
 				$sql = "SELECT io.rowid, io.fk_owner_type, it.rowid, it.ref, it.label ";
 				$sql .= " FROM " .MAIN_DB_PREFIX."kreaimmo_immoowner as io";
@@ -382,7 +382,7 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$pdf->SetFont(pdf_getPDFFont($outputlangs), '', $default_font_size + 1);
 				$posY = $pdf->getY();
 				$pdf->SetXY($posX, $posY);
-				$pdf->MultiCell($widthrecbox, $hautcadre/2, $text, 1, 'L', 1);
+				$pdf->MultiCell($widthrecbox, $frameHeight/2, $text, 1, 'L', 1);
 
 				$posY = $pdf->getY();
 				$pdf->SetXY($posX, $posY);
@@ -393,9 +393,9 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$pdf->MultiCell($widthrecbox*2/3, 3, $outputlangs->convToOutputCharset('Désignation des locaux et équipements privatifs:'), 1, 'L', 1);
 				$posYR = $pdf->getY();
 				$pdf->SetXY($posX, $posYR);
-				$pdf->MultiCell($widthrecbox/3, $hautcadre, '', 1, 'L', 1);
+				$pdf->MultiCell($widthrecbox/3, $frameHeight, '', 1, 'L', 1);
 				$pdf->SetXY($posX+$widthrecbox/3, $posYR);
-				$pdf->MultiCell($widthrecbox*2/3, $hautcadre, '', 1, 'L', 1);
+				$pdf->MultiCell($widthrecbox*2/3, $frameHeight, '', 1, 'L', 1);
 
 				$pdf->SetFont('', '', $default_font_size-1);
 				$pdf->SetXY($posX+$widthrecbox/3+2, $posYR+4);
@@ -586,9 +586,9 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$text = $outputlangs->transnoentities(" Le présent contrat est conclu entre les soussignés :\n\n");
 				// [nom et prénom, ou dénomination du bailleur/ domicile ou siège social/ qualité du bailleur (personne physique, personne morale (1))/ adresse électronique (facultatif)] (2)
 				$text .= $outputlangs->convToOutputCharset($owner->getFullName($outputlangs))."\n";
-				$carac_emetteur = $owner->address . "\n";
-				$carac_emetteur .= $owner->zip . ' ' . $owner->town."\n";
-				$text .=  $carac_emetteur."\n";
+				$senderAddress = $owner->address . "\n";
+				$senderAddress .= $owner->zip . ' ' . $owner->town."\n";
+				$text .=  $senderAddress."\n";
 				$text .= 'En tant que '.$objp->label.' désigné (s) ci-après le bailleur'."\n" ;
 
 				if (!empty($conf->global->KREAIMMO_MANDATAIRE_DETAILS)){
@@ -599,14 +599,14 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				if (!empty($conf->global->KREAIMMO_COLOCATAIRE_DETAILS)){
 				$text .= $outputlangs->transnoentities("[nom et prénom du ou des locataires ou, en cas de colocation, des colocataires, adresse électronique (facultatif)]\n\n");}
 				$renter = $this->documentRenter;
-				$carac_client_name= $outputlangs->convToOutputCharset($renter->getFullName($outputlangs));
-				$text .=  $carac_client_name."\n";
+				$recipientName= $outputlangs->convToOutputCharset($renter->getFullName($outputlangs));
+				$text .=  $recipientName."\n";
 
 				$property = $this->documentProperty;
-				//$carac_client = $property->label . "\n";
-				$carac_client = $property->address . "\n";
-				$carac_client .= $property->zip . ' ' . $property->town."\n\n";
-				$text .=  $carac_client;
+				//$recipientAddress = $property->label . "\n";
+				$recipientAddress = $property->address . "\n";
+				$recipientAddress .= $property->zip . ' ' . $property->town."\n\n";
+				$text .=  $recipientAddress;
 				$text .= $outputlangs->transnoentities("désigné (s) ci-après le locataire\n
 				Il a été convenu ce qui suit :\n\n");
 				$pdf->MultiCell($widthbox, 3, $outputlangs->convToOutputCharset($text), 1, 'L');*/
@@ -619,14 +619,14 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				// New page
 				$pdf->AddPage();
 				if (! empty($tplidx)) $pdf->useTemplate($tplidx);
-				$pagenb++;
-				$pdf->setTopMargin($tab_top_newpage);
+				$pageNumber++;
+				$pdf->setTopMargin($nextPageTableTop);
 				if (empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)) $this->_pagehead($pdf, $object, 0, $outputlangs);
 
 				// Le contrat type de location ou de colocation contient les éléments suivants :
 				$pdf->SetFont(pdf_getPDFFont($outputlangs), 'B', 15);
 				$pdf->SetTextColor(0, 0, 0);
-				$pdf->SetXY($posX, $tab_top_newpage);
+				$pdf->SetXY($posX, $nextPageTableTop);
 				$pdf->MultiCell($widthbox, 3, $outputlangs->convToOutputCharset('FIXATION - RÉVISION DU LOYER'), 1, 'C');
 
 				$pdf->SetFont(pdf_getPDFFont($outputlangs), '', $default_font_size-1);
@@ -659,14 +659,14 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				// New page
 				$pdf->AddPage();
 				if (! empty($tplidx)) $pdf->useTemplate($tplidx);
-				$pagenb++;
-				$pdf->setTopMargin($tab_top_newpage);
+				$pageNumber++;
+				$pdf->setTopMargin($nextPageTableTop);
 				if (empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)) $this->_pagehead($pdf, $object, 0, $outputlangs);
 
 				// Le contrat type de location ou de colocation contient les éléments suivants :
 				$pdf->SetFont(pdf_getPDFFont($outputlangs), 'B', 15);
 				$pdf->SetTextColor(0, 0, 0);
-				$pdf->SetXY($posX, $tab_top_newpage);
+				$pdf->SetXY($posX, $nextPageTableTop);
 				$pdf->MultiCell($widthbox, 3, $outputlangs->convToOutputCharset('CONDITIONS GÉNÉRALES'), 1, 'C');
 
 				// print TEXT
@@ -725,8 +725,8 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				// New page
 				$pdf->AddPage();
 				if (! empty($tplidx)) $pdf->useTemplate($tplidx);
-				$pagenb++;
-				$pdf->setTopMargin($tab_top_newpage);
+				$pageNumber++;
+				$pdf->setTopMargin($nextPageTableTop);
 				if (empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)) $this->_pagehead($pdf, $object, 0, $outputlangs);
 
 				// print TEXT
@@ -829,8 +829,8 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				// New page
 				$pdf->AddPage();
 				if (! empty($tplidx)) $pdf->useTemplate($tplidx);
-				$pagenb++;
-				$pdf->setTopMargin($tab_top_newpage);
+				$pageNumber++;
+				$pdf->setTopMargin($nextPageTableTop);
 				if (empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)) $this->_pagehead($pdf, $object, 0, $outputlangs);
 
 				// print TEXT
@@ -919,8 +919,8 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				// New page
 				$pdf->AddPage();
 				if (! empty($tplidx)) $pdf->useTemplate($tplidx);
-				$pagenb++;
-				$pdf->setTopMargin($tab_top_newpage);
+				$pageNumber++;
+				$pdf->setTopMargin($nextPageTableTop);
 				if (empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)) $this->_pagehead($pdf, $object, 0, $outputlangs);
 
 				// print TEXT
@@ -985,8 +985,8 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				// New page
 				$pdf->AddPage();
 				if (! empty($tplidx)) $pdf->useTemplate($tplidx);
-				$pagenb++;
-				$pdf->setTopMargin($tab_top_newpage);
+				$pageNumber++;
+				$pdf->setTopMargin($nextPageTableTop);
 				if (empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)) $this->_pagehead($pdf, $object, 0, $outputlangs);
 
 				// print TEXT
@@ -1071,9 +1071,9 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				// New page
 				$pdf->AddPage();
 				if (! empty($tplidx)) $pdf->useTemplate($tplidx);
-				$pagenb++;
+				$pageNumber++;
 				$pdf->SetTextColor(0, 0, 0);
-				$pdf->setTopMargin($tab_top_newpage);
+				$pdf->setTopMargin($nextPageTableTop);
 				if (empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)) $this->_pagehead($pdf, $object, 0, $outputlangs);
 
 				$style = array('width' => 0.2, 'cap' => 'butt', 'join' => 'miter', 'dash' => '0', 'color' => array(0, 0, 0));
@@ -1086,12 +1086,12 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$pdf->SetFont(pdf_getPDFFont($outputlangs), '', 12);
 				$posx=$this->marge_gauche;
 				$posy = $pdf->getY();
-				$hautcadre = 36;
+				$frameHeight = 36;
 				$widthrecbox = $this->page_largeur-$this->marge_droite-$this->marge_gauche;
 				$pdf->SetXY($posx, $posy);
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset('DURÉE INITIALE DU CONTRAT'), 1, 'C', 1);
 				$posy=$pdf->getY();
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 				$pdf->SetTextColor(0, 0, 0);
 				$pdf->Rect($posx+2, $posy+1.5, 2, 2, 'D', array('all' => $style));
 				$pdf->SetXY($posx+2, $posy+1.5);
@@ -1156,8 +1156,8 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$pdf->SetXY($posx, $posy);
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset("ANCIEN LOYER"), 1, 'C', 1);
 				$posy = $pdf->getY();
-				$hautcadre = 12;
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$frameHeight = 12;
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 				$pdf->SetFont('', '', $default_font_size-1);
 				$text = $outputlangs->transnoentities("(uniquement si l'ancien locataire a quitté les lieux moins de 18 mois avant la signature du bail) en date du :");
 				$pdf->MultiCell($widthbox, 3, $text, 0, 'L');
@@ -1177,9 +1177,9 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$posy = $pdf->getY();
 				$pdf->SetXY($posx, $posy+2);
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset("MONTANT DES PAIEMENTS"), 1, 'C', 1);
-				$hautcadre = 40;
+				$frameHeight = 40;
 				$posy = $pdf->getY();
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 				$pdf->SetFont('', '', $default_font_size-3);
 				$text2 = $outputlangs->transnoentities("Sommes en toutes lettres -------------- ");
 				$text3 = $outputlangs->transnoentities("Sommes en chiffres");
@@ -1219,9 +1219,9 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$posy = $pdf->getY()+4;
 				$pdf->SetXY($posx, $posy+2);
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset("TERMES DE PAIEMENT"), 1, 'C', 1);
-				$hautcadre = 14;
+				$frameHeight = 14;
 				$posy = $pdf->getY();
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 				$pdf->SetFont('', '', $default_font_size);
 				$text = $outputlangs->transnoentities("Cette somme sera payable d'avance et en totalité le  ____________  de chaque mois, ");
 				$pdf->MultiCell($widthbox, 3, $text, 0, 'L');
@@ -1246,7 +1246,7 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset("INDICE DE RÉFÉRENCE DES LOYERS"), 1, 'C', 1);
 				$posy = $pdf->getY();
 				$pdf->SetFont('', '', $default_font_size);
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 				$text = $outputlangs->transnoentities("Le loyer sera révisé chaque année le  : ");
 				$pdf->MultiCell($widthbox, 3, $text, 0, 'L');
 				$posy = $pdf->getY();
@@ -1258,12 +1258,12 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$pdf->SetFillColor(255, 255, 127);
 				$pdf->SetFont(pdf_getPDFFont($outputlangs), '', 12);
 				$posy = $pdf->getY()+4;
-				$hautcadre = 10;
+				$frameHeight = 10;
 				$pdf->SetXY($posx, $posy+2);
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset("DÉPÔT DE GARANTIE"), 1, 'C', 1);
 				$posy = $pdf->getY();
 				$pdf->SetFont('', '', $default_font_size);
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 				$pdf->SetFont('', '', $default_font_size-3);
 				$text2 = $outputlangs->transnoentities("Sommes en toutes lettres -------------- ");
 				$text3 = $outputlangs->transnoentities("Sommes en chiffres");
@@ -1272,12 +1272,12 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$pdf->SetFillColor(255, 255, 127);
 				$pdf->SetFont(pdf_getPDFFont($outputlangs), '', 12);
 				$posy = $pdf->getY()+6;
-				$hautcadre = 56;
+				$frameHeight = 56;
 				$pdf->SetXY($posx, $posy+2);
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset("HONORAIRES (Partagés entre le bailleur et le locataire)"), 1, 'C', 1);
 				$posy = $pdf->getY();
 				$pdf->SetFont('', '', $default_font_size);
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 				$pdf->SetFont('', 'B', $default_font_size-1);
 				$pdf->SetXY($posx, $posy);
 				$text = $outputlangs->transnoentities("Répartitions des honoraires: ");
@@ -1365,21 +1365,21 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				// New page
 				$pdf->AddPage();
 				if (! empty($tplidx)) $pdf->useTemplate($tplidx);
-				$pagenb++;
+				$pageNumber++;
 				$pdf->SetTextColor(0, 0, 0);
-				$pdf->setTopMargin($tab_top_newpage);
+				$pdf->setTopMargin($nextPageTableTop);
 				if (empty($conf->global->MAIN_PDF_DONOTREPEAT_HEAD)) $this->_pagehead($pdf, $object, 0, $outputlangs);
 
 				$pdf->SetFillColor(255, 255, 127);
 				$pdf->SetFont(pdf_getPDFFont($outputlangs), '', 12);
 				$posx=$this->marge_gauche;
 				$posy = $pdf->getY();
-				$hautcadre = 16;
+				$frameHeight = 16;
 				$pdf->SetXY($posx, $posy);
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset("TRAVAUX RÉCENTS"), 1, 'C', 1);
 				$posy = $pdf->getY();
 				$pdf->SetFont('', '', $default_font_size);
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 				$pdf->SetFont('', '', $default_font_size-1);
 				$text = $outputlangs->transnoentities("Travaux effectués dans le logement depuis la fin du dernier contrat ou du dernier renouvellement : ");
 				$pdf->MultiCell($widthbox, 3, $text, 0, 'L');
@@ -1393,9 +1393,9 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$posy = $pdf->getY();
 				$pdf->SetXY($posx, $posy+2);
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset("CLAUSE EXPRESSE DE TRAVAUX"), 1, 'C', 1);
-				$hautcadre = 22;
+				$frameHeight = 22;
 				$posy = $pdf->getY();
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 				$pdf->SetFont('', '', $default_font_size);
 				$text = $outputlangs->transnoentities("Travaux entraînant une modification de loyer (C.G. Chapitre V): ");
 				$pdf->MultiCell($widthbox, 3, $text, 0, 'L');
@@ -1422,9 +1422,9 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$posy = $pdf->getY();
 				$pdf->SetXY($posx, $posy+2);
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset("CLAUSE(S) PARTICULIÈRE(S)"), 1, 'C', 1);
-				$hautcadre = 22;
+				$frameHeight = 22;
 				$posy = $pdf->getY();
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 				$pdf->MultiCell($widthbox, 3, '', 0, 'L');
 				$posy = $pdf->getY()+16;
 
@@ -1433,9 +1433,9 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$pdf->SetXY($posx, $posy+2);
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset("CLÉS REMISES)"), 1, 'C', 1);
 
-				$hautcadre = 8;
+				$frameHeight = 8;
 				$posy = $pdf->getY();
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 				$pdf->SetFont('', '', $default_font_size);
 				$text = $outputlangs->transnoentities("Nombre de clés remises au locataire :  ");
 				$pdf->MultiCell($widthbox, 3, $text, 0, 'L');
@@ -1445,9 +1445,9 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$posy = $pdf->getY()+4;
 				$pdf->SetXY($posx, $posy+2);
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset("DOCUMENTS ANNEXÉS"), 1, 'C', 1);
-				$hautcadre = 34;
+				$frameHeight = 34;
 				$posy = $pdf->getY();
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 				$pdf->MultiCell($widthbox, 3, '', 0, 'L');
 				$pdf->SetFont('', '', $default_font_size);
 				$text = $outputlangs->transnoentities("État des lieux établi lors de la remise des clés au locataire (contradictoire ou par huissier). ");
@@ -1480,9 +1480,9 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$posy = $pdf->getY()+4;
 				$pdf->SetXY($posx, $posy+2);
 				$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset("SIGNATURES DES PARTIES"), 1, 'C', 1);
-				$hautcadre = 80;
+				$frameHeight = 80;
 				$posy = $pdf->getY();
-				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre, 'D', array('all' => $style));
+				$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight, 'D', array('all' => $style));
 
 				$pdf->SetFont('', 'U', $default_font_size);
 				$text = $outputlangs->transnoentities("RAYÉS NULS ");
@@ -1558,22 +1558,22 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 	 *   Show table for lines
 	 *
 	 *   @param		PDF			$pdf     		Object PDF
-	 *   @param		string		$tab_top		Top position of table
-	 *   @param		string		$tab_height		Height of table (rectangle)
+	 *   @param		string		$tableTop		Top position of table
+	 *   @param		string		$tableHeight		Height of table (rectangle)
 	 *   @param		int			$nexY			Y
 	 *   @param		Translate	$outputlangs	Langs object
 	 *   @param		int			$hidetop		Hide top bar of array
 	 *   @param		int			$hidebottom		Hide bottom bar of array
 	 *   @return	void
 	 */
-	private function _tableau(&$pdf, $tab_top, $tab_height, $nexY, $outputlangs, $hidetop = 0, $hidebottom = 0)
+	private function _tableau(&$pdf, $tableTop, $tableHeight, $nexY, $outputlangs, $hidetop = 0, $hidebottom = 0)
 	{
 		global $conf;
 
 		$default_font_size = pdf_getPDFFontSize($outputlangs);
 
 		//title line
-		$pdf->RoundedRect($this->marge_gauche, $tab_top, $this->page_largeur-$this->marge_gauche-$this->marge_droite, $tab_height, $roundradius, $round_corner = '0110', 'S', $this->border_style, array());
+		$pdf->RoundedRect($this->marge_gauche, $tableTop, $this->page_largeur-$this->marge_gauche-$this->marge_droite, $tableHeight, $roundradius, $round_corner = '0110', 'S', $this->border_style, array());
 
 		foreach ($this->cols as $colKey => $colDef) {
 			if (!$this->getColumnStatus($colKey)) continue;
@@ -1583,18 +1583,18 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 
 			// Add column separator
 			if (!empty($colDef['border-left'])) {
-				$pdf->line($colDef['xStartPos'], $tab_top, $colDef['xStartPos'], $tab_top + $tab_height);
+				$pdf->line($colDef['xStartPos'], $tableTop, $colDef['xStartPos'], $tableTop + $tableHeight);
 			}
 
 			if (empty($hidetop)) {
-				$pdf->SetXY($colDef['xStartPos'] + $colDef['title']['padding'][3], $tab_top-8 + $colDef['title']['padding'][0]);
+				$pdf->SetXY($colDef['xStartPos'] + $colDef['title']['padding'][3], $tableTop-8 + $colDef['title']['padding'][0]);
 
 				$textWidth = $colDef['width'] - $colDef['title']['padding'][3] -$colDef['title']['padding'][1];
-				$pdf->MultiCell($textWidth, $tab_height+8, $colDef['title']['label'], '', $colDef['title']['align']);
+				$pdf->MultiCell($textWidth, $tableHeight+8, $colDef['title']['label'], '', $colDef['title']['align']);
 			}
 		}
 		// Output Rect
-		$this->printRect($pdf, $this->marge_gauche, $tab_top, $this->page_largeur-$this->marge_gauche-$this->marge_droite, $tab_height+1, 0, 0);	// Rect prend une longueur en 3eme param et 4eme param
+		$this->printRect($pdf, $this->marge_gauche, $tableTop, $this->page_largeur-$this->marge_gauche-$this->marge_droite, $tableHeight+1, 0, 0);	// Rect prend une longueur en 3eme param et 4eme param
 	}
 
 	/**
@@ -1712,7 +1712,7 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 				$owner->country_code=$tmparray['code'];
 				$owner->country=$tmparray['label'];
 			}*/
-			$carac_emetteur = dol_format_address($owner, 1, "\n", $outputlangs);
+			$senderAddress = dol_format_address($owner, 1, "\n", $outputlangs);
 
 			$widthrecbox = ($this->page_largeur - $this->marge_gauche - $this->marge_droite) / 2;
 			// HABITATION PRINCIPALE
@@ -1739,7 +1739,7 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 			$posx=$this->marge_gauche;
 			if (! empty($conf->global->MAIN_INVERT_SENDER_RECIPIENT)) $posx=$this->page_largeur-$this->marge_droite-80;
 
-			$hautcadre=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 38 : 40;
+			$frameHeight=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 38 : 40;
 			$widthrecbox=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 92 : 82;
 
 			$pdf->SetTextColor(0, 0, 0);
@@ -1755,7 +1755,7 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 			$posy=$pdf->getY();
 			$pdf->SetXY($posx, $posy);
 			$pdf->SetFillColor(230, 230, 230);
-			$pdf->MultiCell($widthrecbox, $hautcadre, "", 1, 'R', 1);
+			$pdf->MultiCell($widthrecbox, $frameHeight, "", 1, 'R', 1);
 			$pdf->SetTextColor(0, 0, 60);
 
 			// Show sender name
@@ -1767,7 +1767,7 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 			// Show sender information
 			$pdf->SetXY($posx+2, $posy);
 			$pdf->SetFont('', '', $default_font_size - 1);
-			$pdf->MultiCell($widthrecbox-2, 4, $carac_emetteur, 0, 'L');
+			$pdf->MultiCell($widthrecbox-2, 4, $senderAddress, 0, 'L');
 			$posy=$pdf->getY();
 
 			$pdf->SetXY($posx, $posy+4);
@@ -1777,12 +1777,12 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 
 			//Recipient name
 			$renter = $this->documentRenter;
-			$carac_client_name= $outputlangs->convToOutputCharset($renter->getFullName($outputlangs));
+			$recipientName= $outputlangs->convToOutputCharset($renter->getFullName($outputlangs));
 
 			$property = $this->documentProperty;
-			$carac_client = $property->label . "\n";
-			$carac_client .= $property->address . "\n";
-			$carac_client .= $property->zip . ' ' . $property->town;
+			$recipientAddress = $property->label . "\n";
+			$recipientAddress .= $property->address . "\n";
+			$recipientAddress .= $property->zip . ' ' . $property->town;
 
 			// Show recipient
 			$widthrecbox=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 92 : 100;
@@ -1794,13 +1794,13 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 
 			// Bloc Locataire
 			$pdf->SetTextColor(0, 0, 0);
-			$texte = $outputlangs->convToOutputCharset('(le cas échéant)');
+			$optionalNote = $outputlangs->convToOutputCharset('(le cas échéant)');
 			$pdf->SetFont('', '', $default_font_size + 4);
 			$pdf->SetXY($posx, $posy-5);
-			$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset('MANDATAIRE').' '.$texte, 1, 'C');
+			$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset('MANDATAIRE').' '.$optionalNote, 1, 'C');
 
 			$posy=$pdf->getY();
-			$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre);
+			$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight);
 
 			// Show recipient name
 			$pdf->SetXY($posx+2, $posy+3);
@@ -1833,19 +1833,19 @@ class pdf_kreaimmo_bail_vide extends ModelePDFKreaImmo
 			$pdf->SetXY($posx, $posy-5);
 			$pdf->MultiCell($widthrecbox, 3, $outputlangs->convToOutputCharset('LOCATAIRE(S)'), 1, 'C');
 			$posy=$pdf->getY();
-			$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre);
+			$pdf->Rect($posx, $posy, $widthrecbox, $frameHeight);
 
 			// Show recipient name
 			$pdf->SetXY($posx+2, $posy+3);
 			$pdf->SetFont('', 'B', $default_font_size);
-			$pdf->MultiCell($widthrecbox, 2, $carac_client_name, 0, 'L');
+			$pdf->MultiCell($widthrecbox, 2, $recipientName, 0, 'L');
 
 			$posy = $pdf->getY();
 
 			// Show recipient information
 			$pdf->SetFont('', '', $default_font_size - 1);
 			$pdf->SetXY($posx+2, $posy);
-			$pdf->MultiCell($widthrecbox, 4, $carac_client, 0, 'L');
+			$pdf->MultiCell($widthrecbox, 4, $recipientAddress, 0, 'L');
 
 			$posy = $pdf->getY();
 

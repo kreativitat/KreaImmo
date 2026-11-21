@@ -270,7 +270,7 @@ $morecss = array();
 // --------------------------------------------------------------------
 $sql = 'SELECT ';
 $sql .= $object->getFieldList('t');
-$sql .= ',lc.lastname as nomlocataire, lc.firstname as prenomlocataire, ll.label as nomlocal, ll.rowid as property_id, soc.rowid as soc_id, soc.nom as owner_name';
+$sql .= ',lc.lastname as renter_name, lc.firstname as renter_first_name, ll.label as property_label, ll.rowid as property_id, soc.rowid as soc_id, soc.nom as owner_name';
 // Add fields from extrafields
 if (!empty($extrafields->attributes[$object->table_element]['label'])) {
 	foreach ($extrafields->attributes[$object->table_element]['label'] as $key => $val) {
@@ -677,8 +677,8 @@ while ($i < ($limit ? min($num, $limit) : $num)) {
 				print $staticproperty->ref;
 			} elseif ($val['label'] == 'PartialPayment') {
 				if ($object->getSommePaiement()) {
-					$totalpaye = price($object->getSommePaiement(), 0, $langs, 1, -1, -1, $conf->currency);
-					print $totalpaye;
+					$totalPaid = price($object->getSommePaiement(), 0, $langs, 1, -1, -1, $conf->currency);
+					print $totalPaid;
 				}
 			} elseif ($val['label'] == 'Balance') {
 				$balance = $object->total_amount - $object->getSommePaiement();
@@ -691,7 +691,7 @@ while ($i < ($limit ? min($num, $limit) : $num)) {
 					$obj->balance = $balance;
 				}
 			} elseif ($val['label'] == 'Paye') {
-				if ($totalpaye == 0) {
+				if ($totalPaid == 0) {
 					print $object->paye = $langs->trans('UnPaidReceipt');
 				} elseif ($balance == 0) {
 					print $object->paye = $langs->trans('PaidReceipt');

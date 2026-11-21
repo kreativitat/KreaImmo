@@ -138,9 +138,9 @@ class KreaImmoPayment extends CommonObjectKreaImmo
 	public $fk_user_modif;
 	public $import_key;
 	public $status;
-	public $nomlocal;
-	public $nomlocataire;
-	public $nomloyer;
+	public $property_label;
+	public $renter_name;
+	public $receipt_label;
 	// END MODULEBUILDER PROPERTIES
 
 
@@ -506,9 +506,9 @@ class KreaImmoPayment extends CommonObjectKreaImmo
 
 		$sql = 'SELECT '.$this->getFieldList('t').',';
 		$sql .= ' cp.id as mode_id, cp.code as mode_code, cp.libelle as mode_payment,';
-		$sql .= ' lc.lastname as nomlocataire,';
-		$sql .= ' ll.label as nomlocal,';
-		$sql .= ' lo.label as nomloyer,';
+		$sql .= ' lc.lastname as renter_name,';
+		$sql .= ' ll.label as property_label,';
+		$sql .= ' lo.label as receipt_label,';
 		$sql .= ' b.fk_account as bank_account_id, b.rowid as bank_line_id';
 		$sql .= ' FROM ' . MAIN_DB_PREFIX . $this->table_element . ' as t';
 		$sql .= ' LEFT JOIN ' . MAIN_DB_PREFIX . 'kreaimmo_immorenter as lc ON t.fk_renter = lc.rowid';
@@ -618,7 +618,7 @@ class KreaImmoPayment extends CommonObjectKreaImmo
 		$sql .= " t.date_payment,";
 		$sql .= " t.fk_owner,";
 		$sql .= " t.fk_receipt";
-		$sql .= " , lc.lastname as nomlocataire , ll.label as nomlocal , lo.label as nomloyer ";
+		$sql .= " , lc.lastname as renter_name , ll.label as property_label , lo.label as receipt_label ";
 
 		$sql .= ' FROM ' . MAIN_DB_PREFIX . $this->table_element . ' as t';
 		$sql .= " LEFT JOIN " . MAIN_DB_PREFIX . "kreaimmo_immorenter as lc ON t.fk_renter = lc.rowid";
@@ -663,9 +663,9 @@ class KreaImmoPayment extends CommonObjectKreaImmo
 				$line->date_payment = $this->db->jdate($obj->date_payment);
 				$line->fk_owner = $obj->fk_owner;
 				$line->fk_receipt = $obj->fk_receipt;
-				$line->nomlocataire = $obj->nomlocataire;
-				$line->nomlocal = $obj->nomlocal;
-				$line->nomloyer = $obj->nomloyer;
+				$line->renter_name = $obj->renter_name;
+				$line->property_label = $obj->property_label;
+				$line->receipt_label = $obj->receipt_label;
 
 				$this->lines[] = $line;
 			}
@@ -932,11 +932,11 @@ class KreaImmoPayment extends CommonObjectKreaImmo
 	 *      @param  string	$mode               'payment_quittance'
 	 *      @param  string	$label              Label to use in bank record
 	 *      @param  int		$accountid          Id of bank account to do link with
-	 *      @param  string	$emetteur_nom       Name of transmitter
-	 *      @param  string	$emetteur_banque    Name of bank
+	 *      @param  string	$senderName       Name of transmitter
+	 *      @param  string	$senderBank    Name of bank
 	 *      @return int                 		<0 if KO, >0 if OK
 	 */
-	public function addPaymentToBank($user, $mode, $label, $accountid, $emetteur_nom, $emetteur_banque)
+	public function addPaymentToBank($user, $mode, $label, $accountid, $senderName, $senderBank)
 	{
 		global $conf;
 		if (!$this->checkKreaImmoWriteAccess() || $mode !== 'kreaimmo_immopayment') {
@@ -972,7 +972,7 @@ class KreaImmoPayment extends CommonObjectKreaImmo
 		}
 		$previousBank = $this->fk_bank;
 		$previousAccount = $this->fk_account;
-		$lineId = $account->addline($this->date_payment, $this->fk_mode_reglement, $label, $this->amount, $this->num_payment, '', $user, $emetteur_nom, $emetteur_banque);
+		$lineId = $account->addline($this->date_payment, $this->fk_mode_reglement, $label, $this->amount, $this->num_payment, '', $user, $senderName, $senderBank);
 		if ($lineId <= 0 || $this->update_fk_bank($lineId) <= 0) {
 			$this->error = $lineId <= 0 ? $account->error : $this->error;
 			$this->db->rollback();
@@ -995,27 +995,27 @@ class KreaImmoPayment extends CommonObjectKreaImmo
 	/**
 	 *  Update link between the quittance payment and the generated line in bank
 	 *
-	 *  @param	int		$id_bank         Id if bank
+	 *  @param	int		$bankLineId         Id if bank
 	 *  @return	int			             >0 if OK, <=0 if KO
 	 */
-	public function update_fk_bank($id_bank)
+	public function update_fk_bank($bankLineId)
 	{
 		if (!$this->checkKreaImmoWriteAccess()) {
 			return -1;
 		}
-		$sql = 'SELECT b.rowid, b.fk_account FROM '.$this->db->prefix().'bank AS b INNER JOIN '.$this->db->prefix().'bank_account AS ba ON ba.rowid = b.fk_account WHERE b.rowid = '.((int) $id_bank).' AND ba.entity IN ('.getEntity('bank_account').')';
+		$sql = 'SELECT b.rowid, b.fk_account FROM '.$this->db->prefix().'bank AS b INNER JOIN '.$this->db->prefix().'bank_account AS ba ON ba.rowid = b.fk_account WHERE b.rowid = '.((int) $bankLineId).' AND ba.entity IN ('.getEntity('bank_account').')';
 		$resql = $this->db->query($sql);
 		$line = $resql ? $this->db->fetch_object($resql) : false;
-		if (!$line || (!empty($this->fk_bank) && (int) $this->fk_bank !== (int) $id_bank)) {
+		if (!$line || (!empty($this->fk_bank) && (int) $this->fk_bank !== (int) $bankLineId)) {
 			$this->denyKreaImmoWrite();
 			return -1;
 		}
-		$sql = 'UPDATE '.$this->db->prefix().$this->table_element.' SET fk_bank = '.((int) $id_bank).', fk_account = '.((int) $line->fk_account).' WHERE rowid = '.((int) $this->id);
+		$sql = 'UPDATE '.$this->db->prefix().$this->table_element.' SET fk_bank = '.((int) $bankLineId).', fk_account = '.((int) $line->fk_account).' WHERE rowid = '.((int) $this->id);
 		if (!$this->db->query($sql)) {
 			$this->error = $this->db->lasterror();
 			return -1;
 		}
-		$this->fk_bank = (int) $id_bank;
+		$this->fk_bank = (int) $bankLineId;
 		$this->fk_account = (int) $line->fk_account;
 		return 1;
 	}
@@ -1078,7 +1078,7 @@ class KreaImmoPayment extends CommonObjectKreaImmo
 		$sql = "SELECT ip.rowid as reference, ip.fk_rent, ip.fk_property,";
 		$sql .= "ip.fk_renter, ip.amount, ip.note_public, ip.date_payment,";
 		$sql .= "ip.fk_owner, ip.fk_receipt";
-		$sql .= " , lc.lastname as nomlocataire , ll.label as nomlocal , lo.label as nomloyer ";
+		$sql .= " , lc.lastname as renter_name , ll.label as property_label , lo.label as receipt_label ";
 		$sql .= " FROM " . MAIN_DB_PREFIX . "kreaimmo_immopayment as ip ";
 		$sql .= " , " . MAIN_DB_PREFIX . "kreaimmo_immorenter as lc ";
 		$sql .= " , " . MAIN_DB_PREFIX . "kreaimmo_immoproperty as ll ";
@@ -1095,14 +1095,14 @@ class KreaImmoPayment extends CommonObjectKreaImmo
 				$this->ref = $obj->reference;
 				$this->fk_rent = $obj->fk_rent;
 				$this->fk_property = $obj->fk_property;
-				$this->nomlocal = $obj->nomlocal;
+				$this->property_label = $obj->property_label;
 				$this->fk_renter = $obj->fk_renter;
-				$this->nomlocataire = $obj->nomlocataire;
+				$this->renter_name = $obj->renter_name;
 				$this->amount = $obj->amount;
 				$this->note_public = $obj->note_public;
 				$this->date_payment = $this->db->jdate($obj->date_payment);
 				$this->fk_receipt = $obj->fk_receipt;
-				$this->nomloyer = $obj->nomloyer;
+				$this->receipt_label = $obj->receipt_label;
 				$this->fk_owner = $obj->fk_owner;
 
 				return $this->id;
@@ -1150,20 +1150,20 @@ class KreaImmoPayment extends CommonObjectKreaImmo
 	/**
 	 *  Create an intervention document on disk using template defined into PROJECT_ADDON_PDF
 	 *
-	 *  @param	string		$modele			Force template to use ('' by default)
+	 *  @param	string		$modelName			Force template to use ('' by default)
 	 *  @param	Translate	$outputlangs	Objet lang to use for translation
 	 *  @param  int			$hidedetails    Hide details of lines
 	 *  @param  int			$hidedesc       Hide description
 	 *  @param  int			$hideref        Hide ref
 	 *  @return int         				0 if KO, 1 if OK
 	 */
-	public function generateDocument($modele, $outputlangs, $hidedetails = 0, $hidedesc = 0, $hideref = 0)
+	public function generateDocument($modelName, $outputlangs, $hidedetails = 0, $hidedesc = 0, $hideref = 0)
 	{
 		global $conf, $langs;
 
 		$langs->load("kreaimmo@kreaimmo");
 
-		if (empty($modele)) {
+		if (empty($modelName)) {
 			$this->error = 'PDFModelMissing';
 			$this->errors[] = 'PDFModelMissing';
 			return -1;
@@ -1171,7 +1171,7 @@ class KreaImmoPayment extends CommonObjectKreaImmo
 
 		$modelpath = "/kreaimmo/core/modules/kreaimmo/doc/";
 
-		return $this->commonGenerateDocument($modelpath, $modele, $outputlangs, $hidedetails, $hidedesc, $hideref);
+		return $this->commonGenerateDocument($modelpath, $modelName, $outputlangs, $hidedetails, $hidedesc, $hideref);
 	}
 }
 

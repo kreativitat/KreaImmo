@@ -42,17 +42,17 @@ function kreaimmo_immobuildingPrepareHead($object)
 	$h++;
 
 	if (isset($object->fields['note_public']) || isset($object->fields['note_private'])) {
-		$nbNote = 0;
+		$noteCount = 0;
 		if (!empty($object->note_private)) {
-			$nbNote++;
+			$noteCount++;
 		}
 		if (!empty($object->note_public)) {
-			$nbNote++;
+			$noteCount++;
 		}
 		$head[$h][0] = dol_buildpath('/kreaimmo/immobuilding_note.php', 1).'?id='.$object->id;
 		$head[$h][1] = $langs->trans('Notes');
-		if ($nbNote > 0) {
-			$head[$h][1] .= (empty($conf->global->MAIN_OPTIMIZEFORTEXTBROWSER) ? '<span class="badge marginleftonlyshort">'.$nbNote.'</span>' : '');
+		if ($noteCount > 0) {
+			$head[$h][1] .= (empty($conf->global->MAIN_OPTIMIZEFORTEXTBROWSER) ? '<span class="badge marginleftonlyshort">'.$noteCount.'</span>' : '');
 		}
 		$head[$h][2] = 'note';
 		$h++;
@@ -61,12 +61,12 @@ function kreaimmo_immobuildingPrepareHead($object)
 	require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
 	require_once DOL_DOCUMENT_ROOT.'/core/class/link.class.php';
 	$upload_dir = $conf->kreaimmo->dir_output."/immobuilding/".dol_sanitizeFileName($object->ref);
-	$nbFiles = count(dol_dir_list($upload_dir, 'files', 0, '', '(\.meta|_preview.*\.png)$'));
-	$nbLinks = Link::count($db, $object->element, $object->id);
+	$fileCount = count(dol_dir_list($upload_dir, 'files', 0, '', '(\.meta|_preview.*\.png)$'));
+	$linkCount = Link::count($db, $object->element, $object->id);
 	$head[$h][0] = dol_buildpath("/kreaimmo/building/immobuilding_document.php", 1).'?id='.$object->id;
 	$head[$h][1] = $langs->trans('Documents');
-	if (($nbFiles + $nbLinks) > 0) {
-		$head[$h][1] .= '<span class="badge marginleftonlyshort">'.($nbFiles + $nbLinks).'</span>';
+	if (($fileCount + $linkCount) > 0) {
+		$head[$h][1] .= '<span class="badge marginleftonlyshort">'.($fileCount + $linkCount).'</span>';
 	}
 	$head[$h][2] = 'document';
 	$h++;

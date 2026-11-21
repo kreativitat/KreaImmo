@@ -73,7 +73,7 @@ $action = GETPOST('action');
 
 
 $htmlimmo = new FormKreaImmo($db);
-$ChargeDet = new KreaImmoCost_Detail($db);
+$costDetail = new KreaImmoCost_Detail($db);
 
 /*
  * Actions
@@ -84,42 +84,42 @@ $ChargeDet = new KreaImmoCost_Detail($db);
  */
 
 if ($action == 'ventil') {
-	$mesLignesCochees = GETPOST('mesCasesCochees');
+	$selectedRows = GETPOST('mesCasesCochees');
 
-	$cpt = 0;
+	$processedRowCount = 0;
 	$error = 0;
 
 	$db->begin();
 
-	foreach ($mesLignesCochees as $maLigneCochee => $localid) {
-		$ChargeDet = new KreaImmoCost_Detail($db);
+	foreach ($selectedRows as $selectedRow => $propertyId) {
+		$costDetail = new KreaImmoCost_Detail($db);
 
 		// main info loyer
-		$ChargeDet->amount = GETPOST('amount_' . $localid);
-		$ChargeDet->fk_cost_type = GETPOST('typecharge');
-		$ChargeDet->fk_immocost = $id;
-		$ChargeDet->fk_property = $localid;
+		$costDetail->amount = GETPOST('amount_' . $propertyId);
+		$costDetail->fk_cost_type = GETPOST('typecharge');
+		$costDetail->fk_immocost = $id;
+		$costDetail->fk_property = $propertyId;
 
-		$result = $ChargeDet->create($user);
+		$result = $costDetail->create($user);
 
 		if ($result < 0) {
-			setEventMessages($ChargeDet->error, $ChargeDet->errors, 'errors');
+			setEventMessages($costDetail->error, $costDetail->errors, 'errors');
 			$error++;
 		}
-		$cpt++;
+		$processedRowCount++;
 	}
 
 	if (empty($error)) {
-		$charge = new KreaImmoCost($db);
-		$result = $charge->fetch($id);
+		$cost = new KreaImmoCost($db);
+		$result = $cost->fetch($id);
 		if ($result < 0) {
-			setEventMessages($charge->error, $charge->errors, 'errors');
+			setEventMessages($cost->error, $cost->errors, 'errors');
 			$error++;
 		}
-		$charge->dispatch = 1;
-		$result = $charge->update($user);
+		$cost->dispatch = 1;
+		$result = $cost->update($user);
 		if ($result < 0) {
-			setEventMessages($charge->error, $charge->errors, 'errors');
+			setEventMessages($cost->error, $cost->errors, 'errors');
 			$error++;
 		}
 
@@ -140,35 +140,35 @@ if ($action == 'ventil') {
  */
 
 $form = new Form($db);
-$loyer = new KreaImmoReceipt($db);
+$rentReceipt = new KreaImmoReceipt($db);
 
 $help_url = '';
 llxheader('', $langs->trans("newventilcharge"), $help_url);
 
-$charge = new KreaImmoCost ($db);
-$result = $charge->fetch($id);
+$cost = new KreaImmoCost ($db);
+$result = $cost->fetch($id);
 
 if ($result < 0) {
-	setEventMessages($charge->error, $charge->errors, 'errors');
+	setEventMessages($cost->error, $cost->errors, 'errors');
 }
 
-$local = new KreaImmoProperty($db);
-$result = $local->fetch($charge->fk_property);
+$property = new KreaImmoProperty($db);
+$result = $property->fetch($cost->fk_property);
 
 if ($result < 0) {
-	setEventMessages($charge->error, $charge->errors, 'errors');
+	setEventMessages($cost->error, $cost->errors, 'errors');
 }
 
-if (!empty($local->id)) {
-	$result = $local->fetchAllByBuilding();
+if (!empty($property->id)) {
+	$result = $property->fetchAllByBuilding();
 
 	if ($result < 0) {
-		setEventMessages($local->error, $local->errors, 'errors');
+		setEventMessages($property->error, $property->errors, 'errors');
 	}
 }
 
 if ($id > 0) {
-	$head = kreaimmo_immocostPrepareHead($charge);
+	$head = kreaimmo_immocostPrepareHead($cost);
 
 	print dol_get_fiche_head($head, 'repartition', $langs->trans("KreaImmoCost"), -1, 'kreaimmo@kreaimmo');
 
@@ -179,7 +179,7 @@ if ($id > 0) {
 	$morehtmlref = '<div class="refidno">';
 	$morehtmlref .= '</div>';
 
-	dol_banner_tab($charge, 'ref', $linkback, 1, 'ref', 'ref', $morehtmlref);
+	dol_banner_tab($cost, 'ref', $linkback, 1, 'ref', 'ref', $morehtmlref);
 
 	/*
 	 * List properties
@@ -204,96 +204,96 @@ if ($id > 0) {
 	print "</tr>\n";
 
 	$i = 0;
-	if (count($local->lines) > 0) {
+	if (count($property->lines) > 0) {
 		$amount = 0;
-		$loc_array = array();
+		$propertyIdsWithReceipts = array();
 		// Calcul amount par appartement
-		foreach ($local->lines as $local_line) {
+		foreach ($property->lines as $propertyLine) {
 			// Trouve les loyer existant sur cee lieu pour cette période
-			$result = $loyer->fetchByLocalId($local_line->id, array(
-				'insidedateloyer' => $charge->datec
+			$result = $rentReceipt->fetchByLocalId($propertyLine->id, array(
+				'insidedateloyer' => $cost->datec
 			));
 			if ($result < 0) {
-				setEventMessages($loyer->error, $loyer->errors, 'errors');
+				setEventMessages($rentReceipt->error, $rentReceipt->errors, 'errors');
 			}
-			if (count($loyer->lines) > 0) {
-				$loc_array[$local_line->id] = $local_line->id;
+			if (count($rentReceipt->lines) > 0) {
+				$propertyIdsWithReceipts[$propertyLine->id] = $propertyLine->id;
 			}
 		}
 
 		//Récupére le milliéme
-		$millieme_value=array();
-		$millieme_value_all=array();
-		$millieme_not_rent_allocate=0;
-		$millieme_not_rent_allocate_cnt=0;
+		$allocatedShares=array();
+		$allPropertyShares=array();
+		$unallocatedShare=0;
+		$unallocatedShareCount=0;
 		$spreadData = new KreaImmoSpreadZone($db);
-		if (count($local->lines) > 0) {
-			foreach ($local->lines as $local_line) {
-				$data = $spreadData->fetchAll('', '', 0, 0, array('t.fk_property_parent' => $local->id, 't.fk_property_child' => $local_line->id));
+		if (count($property->lines) > 0) {
+			foreach ($property->lines as $propertyLine) {
+				$data = $spreadData->fetchAll('', '', 0, 0, array('t.fk_property_parent' => $property->id, 't.fk_property_child' => $propertyLine->id));
 				if (!is_array($data) && $data < 0) {
 					setEventMessages($spreadData->error, $spreadData->errors, 'errors');
 				} elseif (count($data) > 1) {
 					setEventMessages('ProblemInTableSpread', null, 'errors');
 				} elseif (!empty($data)) {
-					$millieme_value_all[$local_line->id] = reset($data)->percent_application;
-					if (array_key_exists($local_line->id, $loc_array)) {
+					$allPropertyShares[$propertyLine->id] = reset($data)->percent_application;
+					if (array_key_exists($propertyLine->id, $propertyIdsWithReceipts)) {
 						//building is rent so we get the millieme
-						$millieme_value[$local_line->id] = reset($data)->percent_application;
+						$allocatedShares[$propertyLine->id] = reset($data)->percent_application;
 					} else {
 						//building is not rent so we get it to affect this millieme to all other that are rented
-						$millieme_not_rent_allocate += (int) reset($data)->percent_application;
-						$millieme_not_rent_allocate_cnt++;
+						$unallocatedShare += (int) reset($data)->percent_application;
+						$unallocatedShareCount++;
 					}
 				}
 			}
 		}
-		if (!empty($millieme_value) && $millieme_not_rent_allocate_cnt>0) {
-			foreach ($millieme_value as $localid=>$millieme_ori) {
+		if (!empty($allocatedShares) && $unallocatedShareCount>0) {
+			foreach ($allocatedShares as $propertyId=>$originalShare) {
 				//We reafect millimeme the not located rent to to all other rented
-				$millieme_value[$localid] = $millieme_ori + ($millieme_not_rent_allocate/count($loc_array));
+				$allocatedShares[$propertyId] = $originalShare + ($unallocatedShare/count($propertyIdsWithReceipts));
 			}
 		}
 
 
 		// Affichage
-		foreach ($local->lines as $local_line) {
-			//var_dump($local_line);
+		foreach ($property->lines as $propertyLine) {
+			//var_dump($propertyLine);
 
 			print '<tr class="oddeven">';
-			print '<td>' . $local_line->label . '</td>';
+			print '<td>' . $propertyLine->label . '</td>';
 			print '<td>';
-			if (array_key_exists($local_line->id, $loc_array)) {
+			if (array_key_exists($propertyLine->id, $propertyIdsWithReceipts)) {
 				print ' ' . img_picto($langs->trans('Louer'), 'statut4');
 			} else {
 				print ' ' . img_picto($langs->trans('Vide'), 'statut0');
 			}
 			print '</td>';
-			print '<td>' . ((array_key_exists($local_line->id, $millieme_value_all)) ? price($millieme_value_all[$local_line->id]) : ''). '</td>';
-			print '<td>' . ((array_key_exists($local_line->id, $millieme_value)) ? price($millieme_value[$local_line->id]) : ''). '</td>';
+			print '<td>' . ((array_key_exists($propertyLine->id, $allPropertyShares)) ? price($allPropertyShares[$propertyLine->id]) : ''). '</td>';
+			print '<td>' . ((array_key_exists($propertyLine->id, $allocatedShares)) ? price($allocatedShares[$propertyLine->id]) : ''). '</td>';
 
 
-			if (array_key_exists($local_line->id, $loc_array)) {
-				if (array_key_exists($local_line->id, $millieme_value)) {
-					$amount = ($charge->amount / 1000) * $millieme_value[$local_line->id];
-				} elseif (count($loc_array) > 0) {
-					$amount = $charge->amount / count($loc_array);
+			if (array_key_exists($propertyLine->id, $propertyIdsWithReceipts)) {
+				if (array_key_exists($propertyLine->id, $allocatedShares)) {
+					$amount = ($cost->amount / 1000) * $allocatedShares[$propertyLine->id];
+				} elseif (count($propertyIdsWithReceipts) > 0) {
+					$amount = $cost->amount / count($propertyIdsWithReceipts);
 				}
-				print '<td><input name="amount_' . $local_line->id . '" value="' . price($amount) . '" size="30"></td>';
+				print '<td><input name="amount_' . $propertyLine->id . '" value="' . price($amount) . '" size="30"></td>';
 			} else {
-				print '<td><input name="amount_' . $local_line->id . '" value="" size="30"></td>';
+				print '<td><input name="amount_' . $propertyLine->id . '" value="" size="30"></td>';
 			}
 
 			// Colonne choix appartement
 			print '<td align="center">';
 
-			print '<input type="checkbox" name="mesCasesCochees[]" value="' . $local_line->id . '"' . ((array_key_exists($local_line->id, $loc_array)) ? "checked" : "") . '/>';
+			print '<input type="checkbox" name="mesCasesCochees[]" value="' . $propertyLine->id . '"' . ((array_key_exists($propertyLine->id, $propertyIdsWithReceipts)) ? "checked" : "") . '/>';
 			print '</td>';
 			print '</tr>';
 
 			$i++;
 		}
 	}
-	print '<tr><td colspan="5" align="center">' . $langs->trans('Type') . $ChargeDet->showInputField(array(), 'fk_cost_type', '', '', '', '', 0).'</td></tr>';
+	print '<tr><td colspan="5" align="center">' . $langs->trans('Type') . $costDetail->showInputField(array(), 'fk_cost_type', '', '', '', '', 0).'</td></tr>';
 	print '<tr><td colspan="5" align="center"><input class="button" type="submit" value="' . $langs->trans("ImmoCostVentilAddRepartition") . '" name="addrepartition"></td></tr>';
 
 	print "</tbody></table></div>";

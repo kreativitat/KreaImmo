@@ -17,3 +17,5 @@ KreaImmo is a GPL-3.0-or-later external Dolibarr real-estate module. Preserve ex
 - Tests use only a disposable database and synthetic fixtures. See `test/integration/README.md` and `doc/VALIDATION.md`. Never run the fixture against an ERP database or enable scheduled jobs as a test.
 - Package with `php build/buildzip.php`; output is `/tmp/module_kreaimmo-<version>.zip`. Do not publish local configuration, credentials, documents, logs or business data.
 - A push is source synchronization. Activation/deployment requires its own authorized target, backup and runtime verification. Disabling the module preserves its business records.
+
+- Module-owned variables, arguments and transient query aliases use English. Preserve stored field/request names and inherited Dolibarr identifiers when they are compatibility contracts.

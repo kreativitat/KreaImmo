@@ -169,7 +169,7 @@ class KreaImmoRent extends CommonObjectKreaImmo
 	public $fk_account;
 	public $fk_soc;
 	public $location_type_id;
-	public $nomlocataire;
+	public $renter_name;
 	public $vat;
 	public $note_public;
 	public $note_private;
@@ -359,10 +359,10 @@ class KreaImmoRent extends CommonObjectKreaImmo
 		$sql = 'SELECT '.$this->getFieldList('t').',';
 
 		$sql .= ' soc.rowid as socid, soc.nom as name,';
-		$sql .= ' rentr.lastname as nomlocataire,';
+		$sql .= ' rentr.lastname as renter_name,';
 		$sql .= ' rentr.firstname as firstname_renter,';
 		$sql .= ' rent_t.code as location_type_code, rent_t.label as location_type,';
-		$sql .= ' prop.label as nomlocal';
+		$sql .= ' prop.label as property_label';
 		$sql .= ' FROM ' . MAIN_DB_PREFIX . $this->table_element . ' as t';
 		$sql .= ' LEFT JOIN ' . MAIN_DB_PREFIX . 'kreaimmo_immorenter as rentr ON t.fk_renter = rentr.rowid';
 		$sql .= ' LEFT JOIN ' . MAIN_DB_PREFIX . 'kreaimmo_immoproperty as prop ON t.fk_property = prop.rowid';
@@ -622,7 +622,7 @@ class KreaImmoRent extends CommonObjectKreaImmo
 	/**
 	 *  Create a document onto disk according to template module.
 	 *
-	 * @param string $modele Force model to use ('' to not force)
+	 * @param string $modelName Force model to use ('' to not force)
 	 * @param Translate $outputlangs Object langs to use for output
 	 * @param int $hidedetails Hide details of lines
 	 * @param int $hidedesc Hide description
@@ -630,25 +630,25 @@ class KreaImmoRent extends CommonObjectKreaImmo
 	 * @param null|array $moreparams Array to provide more information
 	 * @return     int                        0 if KO, 1 if OK
 	 */
-	public function generateDocument($modele, $outputlangs, $hidedetails = 0, $hidedesc = 0, $hideref = 0, $moreparams = null)
+	public function generateDocument($modelName, $outputlangs, $hidedetails = 0, $hidedesc = 0, $hideref = 0, $moreparams = null)
 	{
 		global $conf, $langs;
 
 		$langs->load("kreaimmo@kreaimmo");
 
-		if (!dol_strlen($modele)) {
-			$modele = 'kreaimmo_bail_vide';
+		if (!dol_strlen($modelName)) {
+			$modelName = 'kreaimmo_bail_vide';
 
 			if ($this->model_pdf) {
-				$modele = $this->model_pdf;
+				$modelName = $this->model_pdf;
 			} elseif (!empty($conf->global->KREAIMMO_ADDON_PDF)) {
-				$modele = $conf->global->KREAIMMO_ADDON_PDF;
+				$modelName = $conf->global->KREAIMMO_ADDON_PDF;
 			}
 		}
 
 		$modelpath = "kreaimmo/core/modules/kreaimmo/doc/";
 
-		return $this->commonGenerateDocument($modelpath, $modele, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
+		return $this->commonGenerateDocument($modelpath, $modelName, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
 	}
 
 	/**

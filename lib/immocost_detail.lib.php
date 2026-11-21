@@ -43,12 +43,12 @@ function kreaimmo_immocost_detailPrepareHead($object)
 
 	if (isset($object->fields['note_public']) || isset($object->fields['note_private']))
 	{
-		$nbNote = 0;
-		if (!empty($object->note_private)) $nbNote++;
-		if (!empty($object->note_public)) $nbNote++;
+		$noteCount = 0;
+		if (!empty($object->note_private)) $noteCount++;
+		if (!empty($object->note_public)) $noteCount++;
 		$head[$h][0] = dol_buildpath('/kreaimmo/cost_detail/immocost_detail_note.php', 1).'?id='.$object->id;
 		$head[$h][1] = $langs->trans('Notes');
-		if ($nbNote > 0) $head[$h][1].= ' <span class="badge">'.$nbNote.'</span>';
+		if ($noteCount > 0) $head[$h][1].= ' <span class="badge">'.$noteCount.'</span>';
 		$head[$h][2] = 'note';
 		$h++;
 	}
@@ -56,11 +56,11 @@ function kreaimmo_immocost_detailPrepareHead($object)
 	require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
 	require_once DOL_DOCUMENT_ROOT.'/core/class/link.class.php';
 	$upload_dir = $conf->kreaimmo->dir_output . "/cost_detail/" . dol_sanitizeFileName($object->ref);
-	$nbFiles = count(dol_dir_list($upload_dir,'files',0,'','(\.meta|_preview.*\.png)$'));
-	$nbLinks=Link::count($db, $object->element, $object->id);
+	$fileCount = count(dol_dir_list($upload_dir,'files',0,'','(\.meta|_preview.*\.png)$'));
+	$linkCount=Link::count($db, $object->element, $object->id);
 	$head[$h][0] = dol_buildpath("/kreaimmo/cost_detail/immocost_detail_document.php", 1).'?id='.$object->id;
 	$head[$h][1] = $langs->trans('Documents');
-	if (($nbFiles+$nbLinks) > 0) $head[$h][1].= ' <span class="badge">'.($nbFiles+$nbLinks).'</span>';
+	if (($fileCount+$linkCount) > 0) $head[$h][1].= ' <span class="badge">'.($fileCount+$linkCount).'</span>';
 	$head[$h][2] = 'document';
 	$h++;
 

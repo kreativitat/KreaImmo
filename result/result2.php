@@ -96,7 +96,7 @@ foreach( $months_list as $month_name )
 }
 print '<td align="right"><b>'.$langs->trans("Total").'</b></td></tr>';
 
-$sql = "SELECT ib.label AS nom_immeuble";
+$sql = "SELECT ib.label AS building_label";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(lp.date_payment)='.$month_num.' then lp.amount else 0 end),2) AS month_'.$month_num;
@@ -152,7 +152,7 @@ foreach( $months_list as $month_name )
 }
 print '<td align="right"><b>'.$langs->trans("Total").'</b></td></tr>';
 
-$sql = "SELECT ib.label AS nom_immeuble";
+$sql = "SELECT ib.label AS building_label";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(ir.date_echeance)='.$month_num.' then ir.chargesamount else 0 end),2) AS month_'.$month_num;
@@ -202,7 +202,7 @@ print '</tr>';
 
 $value_array=array();
 
-$sql = "SELECT ib.label AS nom_immeuble";
+$sql = "SELECT ib.label AS building_label";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(lp.date_payment)='.$month_num.' then lp.amount else 0 end),2) AS month_'.$month_num;
@@ -217,9 +217,9 @@ $sql .= "  AND lp.date_payment <= '" . $db->idate ( dol_get_last_day ( $y, 12, f
 $sql .= "  AND lp.fk_property = ip.rowid AND ip.fk_property = ib.fk_property";
 $sql .= " GROUP BY ib.label";
 $sql .= " ORDER BY ib.label";
-$resqlencaissement = $db->query ( $sql );
+$collectionQueryResult = $db->query ( $sql );
 
-$sql = "SELECT ib.label AS nom_immeuble";
+$sql = "SELECT ib.label AS building_label";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(ir.date_echeance)='.$month_num.' then ir.chargesamount else 0 end),2) AS month_'.$month_num;
@@ -235,25 +235,25 @@ $sql .= "  AND ir.fk_property = ip.rowid AND ip.fk_property = ib.fk_property";
 
 $sql .= " GROUP BY ib.label";
 
-$resqlpaiement = $db->query ( $sql );
-if ($resqlpaiement && $resqlencaissement)
+$receiptQueryResult = $db->query ( $sql );
+if ($receiptQueryResult && $collectionQueryResult)
 {
 	$i = 0;
-	$num = max($db->num_rows ( $resqlpaiement ), $db->num_rows ( $resqlencaissement ));
+	$num = max($db->num_rows ( $receiptQueryResult ), $db->num_rows ( $collectionQueryResult ));
 
 	while ( $i < $num )
 	{
-		$rowencaissement = $db->fetch_row ( $resqlencaissement );
-		$rowpaiement = $db->fetch_row ( $resqlpaiement );
+		$collectionRow = $db->fetch_row ( $collectionQueryResult );
+		$receiptRow = $db->fetch_row ( $receiptQueryResult );
 
-		$value_array[$rowencaissement [0]][0] =  $rowencaissement [0];
+		$value_array[$collectionRow [0]][0] =  $collectionRow [0];
 		for ($j = 1; $j <= 13; $j++) {
-			$value_array[$rowencaissement [0]][$j] = ($rowencaissement [$j] - $rowpaiement [$j]);
+			$value_array[$collectionRow [0]][$j] = ($collectionRow [$j] - $receiptRow [$j]);
 		}
 		$i ++;
 	}
-	$db->free ( $resqlencaissement );
-	$db->free ( $resqlpaiement );
+	$db->free ( $collectionQueryResult );
+	$db->free ( $receiptQueryResult );
 }
 else
 {
@@ -300,7 +300,7 @@ foreach( $months_list as $month_name )
 }
 print '<td align="right"><b>'.$langs->trans("Total").'</b></td></tr>';
 
-$sql = "SELECT ip.label AS nom_immeuble";
+$sql = "SELECT ip.label AS building_label";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(ic.date_start)='.$month_num.' then ic.amount else 0 end),2) AS month_'.$month_num;
@@ -350,7 +350,7 @@ print "</table>\n";
 
 $value_array=array();
 
-$sql = "SELECT ib.label AS nom_immeuble";
+$sql = "SELECT ib.label AS building_label";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(lp.date_payment)='.$month_num.' then lp.amount else 0 end),2) AS month_'.$month_num;
@@ -366,9 +366,9 @@ $sql .= "  AND lp.fk_property = ip.rowid AND ip.fk_property = ib.fk_property";
 
 $sql .= " GROUP BY  ib.label";
 
-$resqlencaissement = $db->query ( $sql );
+$collectionQueryResult = $db->query ( $sql );
 
-$sql = "SELECT ib.label AS nom_immeuble";
+$sql = "SELECT ib.label AS building_label";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(ir.date_echeance)='.$month_num.' then ir.chargesamount else 0 end),2) AS month_'.$month_num;
@@ -383,10 +383,10 @@ $sql .= "  AND ir.date_echeance <= '" . $db->idate ( dol_get_last_day ( $y, 12, 
 $sql .= "  AND ir.fk_property = ip.rowid AND ip.fk_property = ib.fk_property ";
 $sql .= " GROUP BY ib.label";
 
-$resqlpaiement = $db->query ( $sql );
+$receiptQueryResult = $db->query ( $sql );
 
 
-$sql = "SELECT ip.fk_property AS nom_immeuble";
+$sql = "SELECT ip.fk_property AS building_label";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(ic.date_start)='.$month_num.' then ic.amount else 0 end),2) AS month_'.$month_num;
@@ -405,29 +405,29 @@ $sql .= "  AND ic.fk_property = ip.rowid  ";
 
 $sql .= " GROUP BY  ip.fk_property";
 
-$resqlcharged = $db->query ( $sql );
+$deductibleCostQueryResult = $db->query ( $sql );
 
-if ($resqlpaiement && $resqlencaissement && $resqlcharged )
+if ($receiptQueryResult && $collectionQueryResult && $deductibleCostQueryResult )
 {
 	$i = 0;
-	$num = max($db->num_rows ( $resqlpaiement ), $db->num_rows ( $resqlencaissement ), $db->num_rows ( $resqlcharged ));
+	$num = max($db->num_rows ( $receiptQueryResult ), $db->num_rows ( $collectionQueryResult ), $db->num_rows ( $deductibleCostQueryResult ));
 
 	while ( $i < $num )
 	{
-		$rowencaissement = $db->fetch_row ( $resqlencaissement );
-		$rowpaiement = $db->fetch_row ( $resqlpaiement );
-		$rowcharged = $db->fetch_row ( $resqlcharged );
+		$collectionRow = $db->fetch_row ( $collectionQueryResult );
+		$receiptRow = $db->fetch_row ( $receiptQueryResult );
+		$deductibleCostRow = $db->fetch_row ( $deductibleCostQueryResult );
 
-		$value_array[$rowencaissement [0]][0] =  $rowencaissement [0];
+		$value_array[$collectionRow [0]][0] =  $collectionRow [0];
 		for ($j = 1; $j <= 13; $j++)
 		{
-			$value_array[$rowencaissement [0]][$j] = ($rowencaissement [$j] - $rowpaiement [$j] - $rowcharged [$j]);
+			$value_array[$collectionRow [0]][$j] = ($collectionRow [$j] - $receiptRow [$j] - $deductibleCostRow [$j]);
 		}
 		$i ++;
 	}
-	$db->free ( $resqlencaissement );
-	$db->free ( $resqlpaiement );
-	$db->free ( $resqlcharged );
+	$db->free ( $collectionQueryResult );
+	$db->free ( $receiptQueryResult );
+	$db->free ( $deductibleCostQueryResult );
 }
 else
 {
@@ -473,7 +473,7 @@ foreach( $months_list as $month_name )
 }
 print '<td align="right"><b>'.$langs->trans("Total").'</b></td></tr>';
 
-$sql = "SELECT ip.label AS nom_immeuble";
+$sql = "SELECT ip.label AS building_label";
 foreach( $months_list as $month_num => $month_name )
 {
 	$sql .= ', ROUND(SUM(case when MONTH(ic.date_start)='.$month_num.' then ic.amount else 0 end),2) AS month_'.$month_num;
@@ -539,7 +539,7 @@ $sql .= "  AND lp.fk_property = ip.rowid AND ip.fk_property = ib.fk_property";
 
 
 
-$resqlencaissement = $db->query ( $sql );
+$collectionQueryResult = $db->query ( $sql );
 
 $sql = "SELECT 'Total' AS Total";
 foreach( $months_list as $month_num => $month_name )
@@ -556,7 +556,7 @@ $sql .= "  AND ir.date_echeance <= '" . $db->idate ( dol_get_last_day ( $y, 12, 
 $sql .= "  AND ir.fk_property = ip.rowid AND ip.fk_property = ib.fk_property ";
 
 
-$resqlpaiement = $db->query ( $sql );
+$receiptQueryResult = $db->query ( $sql );
 
 
 $sql = "SELECT 'Total' AS Total";
@@ -577,7 +577,7 @@ $sql .= "  AND it.famille = 'Charge déductible' ";
 $sql .= "  AND ic.fk_property = ip.rowid ";
 
 
-$resqlcharged = $db->query ( $sql );
+$deductibleCostQueryResult = $db->query ( $sql );
 
 $sql = "SELECT 'Total' AS Total";
 foreach( $months_list as $month_num => $month_name )
@@ -596,31 +596,31 @@ $sql .= "  AND ic.fk_cost_type = it.rowid ";
 $sql .= "  AND it.famille != 'Charge non déductible' ";
 $sql .= "  AND ic.fk_property = ip.rowid AND ip.fk_property = ib.fk_property";
 
-$resqlchargend = $db->query ( $sql );
+$nonDeductibleCostQueryResult = $db->query ( $sql );
 
-if ($resqlpaiement && $resqlencaissement && $resqlcharged && $resqlchargend  )
+if ($receiptQueryResult && $collectionQueryResult && $deductibleCostQueryResult && $nonDeductibleCostQueryResult  )
 {
 	$i = 0;
-	$num = max($db->num_rows ( $resqlpaiement ), $db->num_rows ( $resqlencaissement ), $db->num_rows ( $resqlcharged ), $db->num_rows ( $resqlchargend ));
+	$num = max($db->num_rows ( $receiptQueryResult ), $db->num_rows ( $collectionQueryResult ), $db->num_rows ( $deductibleCostQueryResult ), $db->num_rows ( $nonDeductibleCostQueryResult ));
 
 	while ( $i < $num )
 	{
-		$rowencaissement = $db->fetch_row ( $resqlencaissement );
-		$rowpaiement = $db->fetch_row ( $resqlpaiement );
-		$rowcharged = $db->fetch_row ( $resqlcharged );
-		$rowchargend = $db->fetch_row ( $resqlchargend );
+		$collectionRow = $db->fetch_row ( $collectionQueryResult );
+		$receiptRow = $db->fetch_row ( $receiptQueryResult );
+		$deductibleCostRow = $db->fetch_row ( $deductibleCostQueryResult );
+		$nonDeductibleCostRow = $db->fetch_row ( $nonDeductibleCostQueryResult );
 
-		$value_array[$rowencaissement [0]][0] =  $rowencaissement [0];
+		$value_array[$collectionRow [0]][0] =  $collectionRow [0];
 		for ($j = 1; $j <= 13; $j++)
 		{
-			$value_array[$rowencaissement [0]][$j] = ($rowencaissement [$j] - $rowpaiement [$j] - $rowcharged [$j] - $rowchargend [$j]);
+			$value_array[$collectionRow [0]][$j] = ($collectionRow [$j] - $receiptRow [$j] - $deductibleCostRow [$j] - $nonDeductibleCostRow [$j]);
 		}
 		$i ++;
 	}
-	$db->free ( $resqlencaissement );
-	$db->free ( $resqlpaiement );
-	$db->free ( $resqlcharged );
-	$db->free ( $resqlchargend );
+	$db->free ( $collectionQueryResult );
+	$db->free ( $receiptQueryResult );
+	$db->free ( $deductibleCostQueryResult );
+	$db->free ( $nonDeductibleCostQueryResult );
 }
 else
 {

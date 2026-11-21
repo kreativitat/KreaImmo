@@ -1,6 +1,6 @@
 # KreaImmo validation
 
-Validation date: 2026-11-21. Module version: 1.0.1, module ID 156571.
+Validation date: 2026-11-21. Module version: 1.0.2, module ID 156571.
 
 99 standalone checks pass from a clean installation, including installation/replay of all 39 tables, company-scoped hook registration, and per-company cost defaults with replay preservation.
 
@@ -31,3 +31,7 @@ The declared Dolibarr 19/PHP 7.4 minimums are not a separately executed compatib
 Module-specific paths, tables, classes, helpers, constants, object identities, document models, menus and assets use KreaImmo identifiers. Existing contributor copyright and license notices are retained. Disabling the module retains its tables and business records; rollback must preserve database and documents. Keep automatic jobs disabled in test installations.
 
 Production acceptance also covers native company activation, installed source hashes, shared reference availability, read-only renter API access, and rich-text/dropdown form sizing. No production business record was created as a test.
+
+Internal PHP and JavaScript identifiers use English. Persisted database fields and inherited Dolibarr properties retain their native names. Integration checks also verify computed property, renter and receipt labels after alias renaming.
+
+The English variable cleanup passes all 101 standalone integration checks, including payment/receipt label readback and foreign-company denial. Database fields, request keys, native PDF layout properties and documented renter API fields retain their existing names.

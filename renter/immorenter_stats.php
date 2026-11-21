@@ -73,7 +73,7 @@ $startyear = $year - 2;
 $endyear = $year;
 
 $mode = GETPOST("mode") ? GETPOST("mode") : 'customer';
-$codageccam = GETPOST('codageccam');
+$ccamCode = GETPOST('codageccam');
 $typevisit = GETPOST('typevisit');
 
 if (empty($conf->kreaimmo->enabled)) accessforbidden();

@@ -43,12 +43,12 @@ function kreaimmo_immoowner_typePrepareHead($object)
 
 	if (isset($object->fields['note_public']) || isset($object->fields['note_private']))
 	{
-		$nbNote = 0;
-		if (!empty($object->note_private)) $nbNote++;
-		if (!empty($object->note_public)) $nbNote++;
+		$noteCount = 0;
+		if (!empty($object->note_private)) $noteCount++;
+		if (!empty($object->note_public)) $noteCount++;
 		$head[$h][0] = dol_buildpath('/kreaimmo/owner_type/immoowner_type_note.php', 1).'?id='.$object->id;
 		$head[$h][1] = $langs->trans('Notes');
-		if ($nbNote > 0) $head[$h][1].= ' <span class="badge">'.$nbNote.'</span>';
+		if ($noteCount > 0) $head[$h][1].= ' <span class="badge">'.$noteCount.'</span>';
 		$head[$h][2] = 'note';
 		$h++;
 	}

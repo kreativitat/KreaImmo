@@ -44,12 +44,12 @@ abstract class ModelePDFKreaImmo extends CommonDocGenerator
 		global $conf;
 
 		$type='kreaimmo';
-		$liste=array();
+		$models=array();
 
 		include_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
-		$liste=getListOfModels($db,$type,$maxfilenamelength);
+		$models=getListOfModels($db,$type,$maxfilenamelength);
 
-		return $liste;
+		return $models;
 	}
 }
 
@@ -60,17 +60,17 @@ abstract class ModelePDFKreaImmo extends CommonDocGenerator
  * \param		outputlangs		objet lang a utiliser pour traduction
  * \return int <0 if KO, >0 if OK
  */
-function kreaimmo_pdf_create($db, $id, $message, $typeModele, $outputlangs, $file) {
+function kreaimmo_pdf_create($db, $id, $message, $modelType, $outputlangs, $file) {
 	global $conf, $langs;
 	$langs->load ( 'kreaimmo@kreaimmo' );
 
 	// Charge le modele
-	$nomModele = dol_buildpath ( '/kreaimmo/core/modules/kreaimmo/doc/pdf_' . $typeModele . '.modules.php' );
+	$modelFile = dol_buildpath ( '/kreaimmo/core/modules/kreaimmo/doc/pdf_' . $modelType . '.modules.php' );
 
-	if (file_exists ( $nomModele )) {
-		require_once ($nomModele);
+	if (file_exists ( $modelFile )) {
+		require_once ($modelFile);
 
-		$classname = "pdf_" . $typeModele;
+		$classname = "pdf_" . $modelType;
 
 		$obj = new $classname ( $db );
 		$obj->message = $message;
@@ -78,7 +78,7 @@ function kreaimmo_pdf_create($db, $id, $message, $typeModele, $outputlangs, $fil
 		// We save charset_output to restore it because write_file can change it if needed for
 		// output format that does not support UTF8.
 		$sav_charset_output = $outputlangs->charset_output;
-		if ($obj->write_file ( $id, $outputlangs, $file, $socid, $courrier ) > 0) {
+		if ($obj->write_file ( $id, $outputlangs, $file, $socid, $letter ) > 0) {
 			$outputlangs->charset_output = $sav_charset_output;
 			return 1;
 		} else {
@@ -151,7 +151,7 @@ abstract class ModeleNumRefKreaImmo
 	/**
 	 *  Renvoi prochaine valeur attribuee
 	 *
-	 *	@param	Societe		$objsoc		Object third party
+	 *	@param	Societe		$thirdParty		Object third party
 	 *	@param	Receipt		$object		Object receipt
 	 *	@return	string					Valeur
 	 */
@@ -184,14 +184,14 @@ abstract class ModeleNumRefKreaImmo
  *
  *  @param	DoliDB		$db  			objet base de donnees
  *  @param	Object		$object			Object kreaimmo
- *  @param	string		$modele			force le modele a utiliser ('' par defaut)
+ *  @param	string		$modelName			force le modele a utiliser ('' par defaut)
  *  @param	Translate	$outputlangs	objet lang a utiliser pour traduction
  *  @param  int			$hidedetails    Hide details of lines
  *  @param  int			$hidedesc       Hide description
  *  @param  int			$hideref        Hide ref
  *  @return int         				0 if KO, 1 if OK
 
-function kreaimmo_create($db, $object, $modele, $outputlangs, $hidedetails=0, $hidedesc=0, $hideref=0)
+function kreaimmo_create($db, $object, $modelName, $outputlangs, $hidedetails=0, $hidedesc=0, $hideref=0)
 {
     // phpcs:enable
 	global $conf, $langs, $user;
@@ -202,23 +202,23 @@ function kreaimmo_create($db, $object, $modele, $outputlangs, $hidedetails=0, $h
 	$srctemplatepath='';
 
 	// Positionne modele sur le nom du modele de fichinter a utiliser
-	if (! dol_strlen($modele))
+	if (! dol_strlen($modelName))
 	{
 		if (! empty($conf->global->KREAIMMO_ADDON_PDF))
 		{
-			$modele = $conf->global->KREAIMMO_ADDON_PDF;
+			$modelName = $conf->global->KREAIMMO_ADDON_PDF;
 		}
 		else
 		{
-			$modele = 'kreaimmo_quittance';
+			$modelName = 'kreaimmo_quittance';
 		}
 	}
 
-	// If selected modele is a filename template (then $modele="modelname:filename")
-	$tmp=explode(':',$modele,2);
+	// If selected modele is a filename template (then $modelName="modelname:filename")
+	$tmp=explode(':',$modelName,2);
     if (! empty($tmp[1]))
     {
-        $modele=$tmp[0];
+        $modelName=$tmp[0];
         $srctemplatepath=$tmp[1];
     }
 
@@ -230,7 +230,7 @@ function kreaimmo_create($db, $object, $modele, $outputlangs, $hidedetails=0, $h
 	{
 		foreach(array('doc','pdf') as $prefix)
 		{
-			$file = $prefix."_".$modele.".modules.php";
+			$file = $prefix."_".$modelName.".modules.php";
 
 			// On verifie l'emplacement du modele
 			foreach(array('kreaimmo_quittance','bail') as $spessificdir)
@@ -240,7 +240,7 @@ function kreaimmo_create($db, $object, $modele, $outputlangs, $hidedetails=0, $h
 			if (file_exists($file))
 			{
 				$filefound=1;
-				$classname=$prefix.'_'.$modele;
+				$classname=$prefix.'_'.$modelName;
 				break;
 			}
 		}
@@ -288,18 +288,18 @@ function kreaimmo_create($db, $object, $modele, $outputlangs, $hidedetails=0, $h
  * \param		outputlangs		objet lang a utiliser pour traduction
  * \return int <0 if KO, >0 if OK
  */
-function kreaimmo_quittance_pdf_create($db, $id, $message, $typeModele, $outputlangs, $file)
+function kreaimmo_quittance_pdf_create($db, $id, $message, $modelType, $outputlangs, $file)
 {
 	global $conf, $langs;
 	$langs->load ( 'kreaimmo@kreaimmo' );
 
 	// Charge le modele
-	$nomModele = dol_buildpath ( '/kreaimmo/core/modules/kreaimmo/doc/pdf_' . $typeModele . '.modules.php' );
+	$modelFile = dol_buildpath ( '/kreaimmo/core/modules/kreaimmo/doc/pdf_' . $modelType . '.modules.php' );
 
-	if (file_exists ( $nomModele )) {
-		require_once ($nomModele);
+	if (file_exists ( $modelFile )) {
+		require_once ($modelFile);
 
-		$classname = "pdf_" . $typeModele;
+		$classname = "pdf_" . $modelType;
 
 		$obj = new $classname ( $db );
 		$obj->message = $message;
@@ -307,7 +307,7 @@ function kreaimmo_quittance_pdf_create($db, $id, $message, $typeModele, $outputl
 		// We save charset_output to restore it because write_file can change it if needed for
 		// output format that does not support UTF8.
 		$sav_charset_output = $outputlangs->charset_output;
-		if ($obj->write_file ( $id, $outputlangs, $file, $socid, $courrier ) > 0) {
+		if ($obj->write_file ( $id, $outputlangs, $file, $socid, $letter ) > 0) {
 			$outputlangs->charset_output = $sav_charset_output;
 			return 1;
 		} else {
@@ -328,17 +328,17 @@ function kreaimmo_quittance_pdf_create($db, $id, $message, $typeModele, $outputl
  * \param		outputlangs		objet lang a utiliser pour traduction
  * \return int <0 if KO, >0 if OK
  */
-function kreaimmo_bail_vide_pdf_create($db, $year, $typeModele, $outputlangs, $filedir, $filename) {
+function kreaimmo_bail_vide_pdf_create($db, $year, $modelType, $outputlangs, $filedir, $filename) {
 	global $conf, $langs;
 	$langs->load ( 'kreaimmo@kreaimmo' );
 
 	// Charge le modele
-	$nomModele = dol_buildpath ( '/kreaimmo/core/modules/kreaimmo/doc/pdf_' . $typeModele . '.modules.php' );
+	$modelFile = dol_buildpath ( '/kreaimmo/core/modules/kreaimmo/doc/pdf_' . $modelType . '.modules.php' );
 
-	if (file_exists ( $nomModele )) {
-		require_once ($nomModele);
+	if (file_exists ( $modelFile )) {
+		require_once ($modelFile);
 
-		$classname = "pdf_" . $typeModele;
+		$classname = "pdf_" . $modelType;
 
 		$obj = new $classname ( $db );
 		$obj->message = $message;

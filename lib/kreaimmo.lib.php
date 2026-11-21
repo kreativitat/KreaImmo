@@ -105,15 +105,15 @@ function kreaimmoAdminPrepareHead()
  *  @param  Translate	$outputlangs	Object lang for output
  * 	@param	string		$paramfreetext	Constant name of free text
  * 	@param	Societe		$fromcompany	Object company
- * 	@param	int			$marge_basse	Margin bottom we use for the autobreak
- * 	@param	int			$marge_gauche	Margin left (no more used)
- * 	@param	int			$page_hauteur	Page height (no more used)
+ * 	@param	int			$bottomMargin	Margin bottom we use for the autobreak
+ * 	@param	int			$leftMargin	Margin left (no more used)
+ * 	@param	int			$pageHeight	Page height (no more used)
  * 	@param	Object		$object			Object shown in PDF
  * 	@param	int			$showdetails	Show company adress details into footer (0=Nothing, 1=Show address, 2=Show managers, 3=Both)
  *  @param	int			$hidefreetext	1=Hide free text, 0=Show free text
  * 	@return	int							Return height of bottom margin including footer text
  */
-function kreaimmo_pdf_kreaimmo_pagefoot(&$pdf, $outputlangs, $paramfreetext, $fromcompany, $marge_basse, $marge_gauche, $page_hauteur, $object, $showdetails = 0, $hidefreetext = 0)
+function kreaimmo_pdf_kreaimmo_pagefoot(&$pdf, $outputlangs, $paramfreetext, $fromcompany, $bottomMargin, $leftMargin, $pageHeight, $object, $showdetails = 0, $hidefreetext = 0)
 {
 	global $conf, $user, $mysoc;
 
@@ -264,7 +264,7 @@ function kreaimmo_pdf_kreaimmo_pagefoot(&$pdf, $outputlangs, $paramfreetext, $fr
 		}
 	}
 
-	$marginwithfooter = $marge_basse + $freetextheight + (!empty($line1) ? 3 : 0) + (!empty($line2) ? 3 : 0) + (!empty($line3) ? 3 : 0) + (!empty($line4) ? 3 : 0);
+	$marginwithfooter = $bottomMargin + $freetextheight + (!empty($line1) ? 3 : 0) + (!empty($line2) ? 3 : 0) + (!empty($line3) ? 3 : 0) + (!empty($line4) ? 3 : 0);
 	$posy = $marginwithfooter + 0;
 
 	if ($line)	// Free text

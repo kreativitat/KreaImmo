@@ -121,9 +121,9 @@ if ($resql < 0) {
 	}
 }
 
-$sql = "SELECT DISTINCT rec.rowid as reference, rec.label as receiptname,rec.ref as receiptref, loc.lastname as nom, ";
-$sql .= " prop.address, prop.label as local, loc.status as status, rec.total_amount as total, rec.partial_payment, ";
-$sql .= " rec.balance, rec.fk_renter as reflocataire, rec.fk_property as reflocal, rec.fk_owner,";
+$sql = "SELECT DISTINCT rec.rowid as reference, rec.label as receiptname,rec.ref as receiptref, loc.lastname as renter_name, ";
+$sql .= " prop.address, prop.label as property_label, loc.status as status, rec.total_amount as total, rec.partial_payment, ";
+$sql .= " rec.balance, rec.fk_renter as renter_id, rec.fk_property as property_id, rec.fk_owner,";
 $sql .= " rec.fk_rent as refcontract, rent.preavis,";
 $sql .= " rec.date_echeance, rent.preavis";
 $sql .= " ,prop.rowid as propid";

@@ -87,7 +87,7 @@ print '<table class="tagtable nobottomiftotal liste">'."\n";
 $sql = 'SELECT ';
 $counter = new KreaImmoCompteur($db);
 $sql .= $counter->getFieldList('t');
-$sql .= ',ict.label as label_compteur';
+$sql .= ',ict.label as meter_label';
 $sql .= " FROM ".MAIN_DB_PREFIX.$counter->table_element." as t";
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_kreaimmo_immocompteur_type as ict ON ict.rowid=t.compteur_type_id";
 $sql .= ' WHERE '.$counter->getKreaImmoScopeSQL('t');
@@ -203,24 +203,24 @@ foreach ($result_data as $obj) {
 
 	//Consommation jour
 	print '<td class="left">';
-	$conso_jour=0;
+	$dailyConsumption=0;
 	if (empty($day_diff)) {
 		$day_diff = 1;
 	}
-	$conso_jour=$rel_diff/$day_diff;
-	print price($conso_jour);
+	$dailyConsumption=$rel_diff/$day_diff;
+	print price($dailyConsumption);
 	print '</td>';
 
 	//Consommation mois
 	print '<td class="left">';
-	$conso_mois=$conso_jour*30;
-	print price($conso_mois);
+	$monthlyConsumption=$dailyConsumption*30;
+	print price($monthlyConsumption);
 	print '</td>';
 
 	//Consommation annuel
 	print '<td class="left">';
-	$conso_year=$conso_jour*365;
-	print price($conso_year);
+	$annualConsumption=$dailyConsumption*365;
+	print price($annualConsumption);
 	print '</td>';
 
 	//Année

@@ -381,6 +381,43 @@ try {
 				});
 			}
 		}
+		qaCheck('payment queries retain property renter and receipt display labels', function () {
+			global $db, $fixtures;
+			$payments = new KreaImmoPayment($db);
+			qaAssert($payments->fetchAll('ASC', 't.rowid', 100) > 0, 'Cannot list synthetic payments');
+			$matching = null;
+			foreach ($payments->lines as $line) {
+				if ((int) $line->rowid === (int) $fixtures[2]['payment']->id) {
+					$matching = $line;
+				}
+			}
+			qaAssert($matching !== null, 'Synthetic payment is absent from its list');
+			qaAssert($matching->property_label === $fixtures[2]['property']->label, 'Payment list lost the property label');
+			qaAssert($matching->renter_name === $fixtures[2]['renter']->lastname, 'Payment list lost the renter name');
+			qaAssert($matching->receipt_label === $fixtures[2]['receipt']->label, 'Payment list lost the receipt label');
+			$linked = new KreaImmoPayment($db);
+			qaAssert($linked->fetch_by_loyer($fixtures[2]['receipt']->id) > 0, 'Cannot fetch payment through its receipt');
+			qaAssert($linked->property_label === $matching->property_label && $linked->renter_name === $matching->renter_name && $linked->receipt_label === $matching->receipt_label, 'Receipt-linked payment query lost display labels');
+			$foreign = new KreaImmoPayment($db);
+			qaAssert($foreign->fetch_by_loyer($fixtures[3]['receipt']->id) === 0, 'Receipt-linked payment query exposed another company');
+		});
+		qaCheck('property receipt queries retain display labels and company isolation', function () {
+			global $db, $fixtures;
+			$receipts = new KreaImmoReceipt($db);
+			qaAssert($receipts->fetchByLocalId($fixtures[2]['property']->id) > 0, 'Cannot list receipts for the synthetic property');
+			$matching = null;
+			foreach ($receipts->lines as $line) {
+				if ((int) $line->id === (int) $fixtures[2]['receipt']->id) {
+					$matching = $line;
+				}
+			}
+			qaAssert($matching !== null, 'Synthetic receipt is absent from its property list');
+			qaAssert($matching->property_label === $fixtures[2]['property']->label, 'Property receipt query lost the property label');
+			qaAssert($matching->renter_name === $fixtures[2]['renter']->firstname, 'Property receipt query lost the renter name');
+			qaAssert($matching->label === $fixtures[2]['receipt']->label, 'Property receipt query lost the receipt label');
+			$foreign = new KreaImmoReceipt($db);
+			qaAssert($foreign->fetchByLocalId($fixtures[3]['property']->id) === 0 && $foreign->lines === array(), 'Property receipt query exposed another company');
+		});
 		foreach (array('property' => 'fk_owner', 'rent' => 'fk_property', 'receipt' => 'fk_rent', 'cost' => 'fk_property', 'compteur' => 'fk_immoproperty', 'payment' => 'fk_receipt') as $kind => $field) {
 			qaCheck($kind.' rejects create with foreign parent', function () use ($kind, $field) {
 				global $fixtures, $user;

@@ -231,7 +231,7 @@ if ($action == 'updateMask') {
 		setEventMessages($langs->trans("Error"), null, 'errors');
 	}
 } elseif ($action == 'specimen' && $tmpobjectkey) {
-	$modele = GETPOST('module', 'alpha');
+	$documentModel = GETPOST('module', 'alpha');
 
 	$className = $myTmpObjects[$tmpobjectkey]['class'];
 	$tmpobject = new $className($db);
@@ -243,9 +243,9 @@ if ($action == 'updateMask') {
 	$className = '';
 	$dirmodels = array_merge(array('/'), (array) $conf->modules_parts['models']);
 	foreach ($dirmodels as $reldir) {
-		$file = dol_buildpath($reldir."core/modules/kreaimmo/doc/pdf_".$modele."_".strtolower($tmpobjectkey).".modules.php", 0);
+		$file = dol_buildpath($reldir."core/modules/kreaimmo/doc/pdf_".$documentModel."_".strtolower($tmpobjectkey).".modules.php", 0);
 		if (file_exists($file)) {
-			$className = "pdf_".$modele."_".strtolower($tmpobjectkey);
+			$className = "pdf_".$documentModel."_".strtolower($tmpobjectkey);
 			break;
 		}
 	}

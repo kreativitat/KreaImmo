@@ -764,9 +764,9 @@ class KreaImmoCompteur extends CommonObjectKreaImmo
 				$filearray = dol_dir_list($upload_dir, "files");
 				$filename = $filearray[0]['name'];
 				if (!empty($filename)) {
-					$pospoint = strpos($filearray[0]['name'], '.');
+					$extensionPosition = strpos($filearray[0]['name'], '.');
 
-					$pathtophoto = $class.'/'.$this->ref.'/thumbs/'.substr($filename, 0, $pospoint).'_mini'.substr($filename, $pospoint);
+					$pathtophoto = $class.'/'.$this->ref.'/thumbs/'.substr($filename, 0, $extensionPosition).'_mini'.substr($filename, $extensionPosition);
 					if (empty($conf->global->{strtoupper($module.'_'.$class).'_FORMATLISTPHOTOSASUSERS'})) {
 						$result .= '<div class="floatleft inline-block valignmiddle divphotoref"><div class="photoref"><img class="photo'.$module.'" alt="No photo" border="0" src="'.DOL_URL_ROOT.'/viewimage.php?modulepart='.$module.'&entity='.$conf->entity.'&file='.urlencode($pathtophoto).'"></div></div>';
 					}
@@ -997,7 +997,7 @@ class KreaImmoCompteur extends CommonObjectKreaImmo
 	/**
 	 *  Create a document onto disk according to template module.
 	 *
-	 *  @param	    string		$modele			Force template to use ('' to not force)
+	 *  @param	    string		$modelName			Force template to use ('' to not force)
 	 *  @param		Translate	$outputlangs	objet lang a utiliser pour traduction
 	 *  @param      int			$hidedetails    Hide details of lines
 	 *  @param      int			$hidedesc       Hide description
@@ -1005,7 +1005,7 @@ class KreaImmoCompteur extends CommonObjectKreaImmo
 	 *  @param      null|array  $moreparams     Array to provide more information
 	 *  @return     int         				0 if KO, 1 if OK
 	 */
-	public function generateDocument($modele, $outputlangs, $hidedetails = 0, $hidedesc = 0, $hideref = 0, $moreparams = null)
+	public function generateDocument($modelName, $outputlangs, $hidedetails = 0, $hidedesc = 0, $hideref = 0, $moreparams = null)
 	{
 		global $conf, $langs;
 
@@ -1014,20 +1014,20 @@ class KreaImmoCompteur extends CommonObjectKreaImmo
 
 		$langs->load("kreaimmo@kreaimmo");
 
-		if (!dol_strlen($modele)) {
-			$modele = 'standard_immocompteur';
+		if (!dol_strlen($modelName)) {
+			$modelName = 'standard_immocompteur';
 
 			if ($this->modelpdf) {
-				$modele = $this->modelpdf;
+				$modelName = $this->modelpdf;
 			} elseif (!empty($conf->global->IMMOCOMPTEUR_ADDON_PDF)) {
-				$modele = $conf->global->IMMOCOMPTEUR_ADDON_PDF;
+				$modelName = $conf->global->IMMOCOMPTEUR_ADDON_PDF;
 			}
 		}
 
 		$modelpath = "core/modules/kreaimmo/doc/";
 
 		if ($includedocgeneration) {
-			$result = $this->commonGenerateDocument($modelpath, $modele, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
+			$result = $this->commonGenerateDocument($modelpath, $modelName, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
 		}
 
 		return $result;

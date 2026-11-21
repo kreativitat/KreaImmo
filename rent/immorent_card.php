@@ -195,14 +195,14 @@ if (empty($reshook)) {
 				// If it exists, remove thumb.
 				$regs = array();
 				if (preg_match('/(\.jpg|\.jpeg|\.bmp|\.gif|\.png|\.tiff)$/i', $file, $regs)) {
-					$photo_vignette = basename(preg_replace('/' . $regs[0] . '/i', '', $file) . '_small' . $regs[0]);
-					if (file_exists(dol_osencode($dirthumb . $photo_vignette))) {
-						dol_delete_file($dirthumb . $photo_vignette);
+					$photoThumbnail = basename(preg_replace('/' . $regs[0] . '/i', '', $file) . '_small' . $regs[0]);
+					if (file_exists(dol_osencode($dirthumb . $photoThumbnail))) {
+						dol_delete_file($dirthumb . $photoThumbnail);
 					}
 
-					$photo_vignette = basename(preg_replace('/' . $regs[0] . '/i', '', $file) . '_mini' . $regs[0]);
-					if (file_exists(dol_osencode($dirthumb . $photo_vignette))) {
-						dol_delete_file($dirthumb . $photo_vignette);
+					$photoThumbnail = basename(preg_replace('/' . $regs[0] . '/i', '', $file) . '_mini' . $regs[0]);
+					if (file_exists(dol_osencode($dirthumb . $photoThumbnail))) {
+						dol_delete_file($dirthumb . $photoThumbnail);
 					}
 				}
 
@@ -225,29 +225,29 @@ if (empty($reshook)) {
 
 	if ($action=='confirm_revalindice' && $confirm=='yes') {
 		dol_include_once('/kreaimmo/class/kreaimmoindice.class.php');
-		$indice1=GETPOST('indice1','int');
-		$indice2=GETPOST('indice2','int');
-		$indice_array=array();
-		$indice = new KreaImmoIndice($db);
-		$indice1Val=1;
-		$indice2Val=1;
-		if (!empty($indice1) && $indice1!==-1) {
-			$resultFetch = $indice->fetch($indice1);
+		$numeratorIndexId=GETPOST('indice1','int');
+		$denominatorIndexId=GETPOST('indice2','int');
+		$indexOptions=array();
+		$rentIndex = new KreaImmoIndice($db);
+		$numeratorIndexValue=1;
+		$denominatorIndexValue=1;
+		if (!empty($numeratorIndexId) && $numeratorIndexId!==-1) {
+			$resultFetch = $rentIndex->fetch($numeratorIndexId);
 			if ($resultFetch<0) {
-				setEventMessages($indice->errors,$indice->error,'errors');
+				setEventMessages($rentIndex->errors,$rentIndex->error,'errors');
 			} else {
-				$indice1Val=(float)$indice->amount;
+				$numeratorIndexValue=(float)$rentIndex->amount;
 			}
 		}
-		if (!empty($indice2) && $indice2!==-1) {
-			$resultFetch = $indice->fetch($indice2);
+		if (!empty($denominatorIndexId) && $denominatorIndexId!==-1) {
+			$resultFetch = $rentIndex->fetch($denominatorIndexId);
 			if ($resultFetch<0) {
-				setEventMessages($indice->errors,$indice->error,'errors');
+				setEventMessages($rentIndex->errors,$rentIndex->error,'errors');
 			} else {
-				$indice2Val=(float)$indice->amount;
+				$denominatorIndexValue=(float)$rentIndex->amount;
 			}
 		}
-		$object->rentamount = ($object->rentamount * $indice1Val) / $indice2Val;
+		$object->rentamount = ($object->rentamount * $numeratorIndexValue) / $denominatorIndexValue;
 		$object->date_last_regul=dol_now();
 		$resultUpd = $object->update($user);
 		if ($resultUpd<0) {
@@ -405,14 +405,14 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	if ($action == 'revel_indice') {
 		// Create an array for form
 		dol_include_once('/kreaimmo/class/kreaimmoindice.class.php');
-		$indice_array=array();
-		$indice = new KreaImmoIndice($db);
-		$indiceFetch = $indice->fetchAll('','type_indice',0,0,array('t.active'=>1));
-		if (!is_array($indiceFetch) && $indiceFetch<0) {
-			setEventMessages($indice->errors,$indice->error,'errors');
-		}elseif (!empty($indiceFetch)) {
-			foreach($indiceFetch as $id=>$data) {
-				$indice_array[$data->id]=dol_print_date($data->date_start).' - '.dol_print_date($data->date_end). ' '. $data->type_indice."=".$data->amount;
+		$indexOptions=array();
+		$rentIndex = new KreaImmoIndice($db);
+		$indexFetchResult = $rentIndex->fetchAll('','type_indice',0,0,array('t.active'=>1));
+		if (!is_array($indexFetchResult) && $indexFetchResult<0) {
+			setEventMessages($rentIndex->errors,$rentIndex->error,'errors');
+		}elseif (!empty($indexFetchResult)) {
+			foreach($indexFetchResult as $id=>$data) {
+				$indexOptions[$data->id]=dol_print_date($data->date_start).' - '.dol_print_date($data->date_end). ' '. $data->type_indice."=".$data->amount;
 			}
 		}
 
@@ -420,7 +420,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		'name' => 'indice1',
 		'type' => 'select',
 		'label' => $langs->trans('UIIndiceX', 1),
-		'values' => $indice_array,
+		'values' => $indexOptions,
 		'morecss' => 'minwidth150',
 		'default' => ''
 		);
@@ -428,7 +428,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		'name' => 'indice2',
 		'type' => 'select',
 		'label' => $langs->trans('UIIndiceX', 2),
-		'values' => $indice_array,
+		'values' => $indexOptions,
 		'morecss' => 'minwidth150',
 		'default' => ''
 		);
@@ -658,9 +658,9 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		print '<table class="border" width="100%">';
 		print '<tr class="liste_titre"><td colspan=3>' . $langs->trans("LinkedDocuments") . '</td></tr>';
 		// afficher
-		$legende = $langs->trans("Ouvrir");
+		$linkTitle = $langs->trans("Ouvrir");
 		print '<tr><td width="200" class="center">' . $langs->trans("EmptyHousing") . '</td><td> ';
-		print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=kreaimmo&file=rent/bail_vide' . $id . '.pdf" alt="' . $legende . '" title="' . $legende . '">';
+		print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=kreaimmo&file=rent/bail_vide' . $id . '.pdf" alt="' . $linkTitle . '" title="' . $linkTitle . '">';
 		print '<img src="' . DOL_URL_ROOT . '/theme/' . $conf->theme . '/img/pdf2.png" border="0" class="absmiddle" hspace="2px" ></a>';
 		print '</td></tr></table>';
 	}*/

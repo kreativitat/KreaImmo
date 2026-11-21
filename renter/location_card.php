@@ -436,8 +436,8 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
         $result = $db->query($sql);
         if ($result)
         {
-            $locationstatic=new KreaImmoRent($db);
-			$locationstatic->fetch($id);
+            $staticRentContract=new KreaImmoRent($db);
+			$staticRentContract->fetch($id);
 
             $num = $db->num_rows($result);
             $i = 0;
@@ -462,11 +462,11 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
             {
                 $objp = $db->fetch_object($result);
 
-                $locationstatic->id=$objp->crowid;
-				$locationstatic->ref=$objp->crowid;
+                $staticRentContract->id=$objp->crowid;
+				$staticRentContract->ref=$objp->crowid;
 
                 print '<tr class="oddeven">';
-                print '<td>'.$locationstatic->getNomUrl(1).'</td>';
+                print '<td>'.$staticRentContract->getNomUrl(1).'</td>';
                 print '<td align="center">'.dol_print_date($db->jdate($objp->datec),'dayhour')."</td>\n";
                 print '<td align="center">'.dol_print_date($db->jdate($objp->dateh),'day')."</td>\n";
                 print '<td align="center">'.dol_print_date($db->jdate($objp->datef),'day')."</td>\n";

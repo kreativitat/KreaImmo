@@ -136,7 +136,7 @@ class FormKreaImmo extends Form
 		$langs->load("dict");
 
 		$out='';
-		$juridiqueArray=array();
+		$legalTypes=array();
 		$favorite=array();
 		$label=array();
 		$atleastonefavorite=0;
@@ -158,24 +158,24 @@ class FormKreaImmo extends Form
 				while ($i < $num)
 				{
 					$obj = $this->db->fetch_object($resql);
-					$juridiqueArray[$i]['rowid'] = $obj->rowid;
-					$juridiqueArray[$i]['code'] = $obj->code;
-					$juridiqueArray[$i]['label'] = $obj->label;
-					$juridiqueArray[$i]['favorite'] = $obj->favorite;
+					$legalTypes[$i]['rowid'] = $obj->rowid;
+					$legalTypes[$i]['code'] = $obj->code;
+					$legalTypes[$i]['label'] = $obj->label;
+					$legalTypes[$i]['favorite'] = $obj->favorite;
 					$favorite[$i]					= $obj->favorite;
-					$label[$i] = dol_string_unaccent($juridiqueArray[$i]['label']);
+					$label[$i] = dol_string_unaccent($legalTypes[$i]['label']);
 					$i++;
 				}
 
-				if (empty($disablefavorites)) array_multisort($favorite, SORT_DESC, $label, SORT_ASC, $juridiqueArray);
-				else $juridiqueArray = dol_sort_array($juridiqueArray, 'label');
+				if (empty($disablefavorites)) array_multisort($favorite, SORT_DESC, $label, SORT_ASC, $legalTypes);
+				else $legalTypes = dol_sort_array($legalTypes, 'label');
 
 				if ($showempty)
 				{
 					$out.='<option value="">&nbsp;</option>'."\n";
 				}
 
-				foreach ($juridiqueArray as $row)
+				foreach ($legalTypes as $row)
 				{
 					//if (empty($showempty) && empty($row['rowid'])) continue;
 					if (empty($row['rowid'])) continue;
@@ -344,13 +344,13 @@ class FormKreaImmo extends Form
 		dol_include_once('/kreaimmo/class/kreaimmocompteur.class.php');
 		$object = new KreaImmoCompteur($this->db);
 		$dataYear=array();
-		$sql = 'SELECT DISTINCT YEAR(date_relever) as yearrelever FROM ' . MAIN_DB_PREFIX . $object->table_element;
+		$sql = 'SELECT DISTINCT YEAR(date_relever) as reading_year FROM ' . MAIN_DB_PREFIX . $object->table_element;
 		$sql .= ' ORDER BY date_relever DESC';
 		$resql=$this->db->query($sql);
 
 		if ($resql) {
 			while($obj=$this->db->fetch_object($resql)) {
-				$dataYear[$obj->yearrelever] = $obj->yearrelever;
+				$dataYear[$obj->reading_year] = $obj->reading_year;
 			}
 		} else {
 			setEventMessage($this->db->lasterror,'errors');

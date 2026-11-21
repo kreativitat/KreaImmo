@@ -116,7 +116,7 @@ $sql .= ")";
 $sql .= " ORDER BY date";
 $result = $db->query ( $sql );
 if ($result) {
-	$num_lignes = $db->num_rows ( $result );
+	$rowCount = $db->num_rows ( $result );
 	$i = 0;
 
 	print '<table class="tagtable liste" width="100%">';

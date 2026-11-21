@@ -260,7 +260,7 @@ if (GETPOST('action', 'aZ09') == 'create') {
 	$total = $receipt->total_amount;
 
 	if ($result >= 0) {
-		//$ret = $paiement->fetch_thirdparty();
+		//$ret = $receiptPayment->fetch_thirdparty();
 		$title = '';
 		if ($receipt->type != KreaImmoReceipt::TYPE_CREDIT_NOTE) $title .= $langs->trans("EnterPaymentReceivedFromCustomer");
 		if ($receipt->type == KreaImmoReceipt::TYPE_CREDIT_NOTE) $title .= $langs->trans("EnterPaymentDueToCustomer");
@@ -386,7 +386,7 @@ if (GETPOST('action', 'aZ09') == 'create') {
 		print "</tr>\n";
 
 		$total = 0;
-		$totalrecu = 0;
+		$totalReceived = 0;
 
 		while ($i < $num) {
 			$objp = $receipt;

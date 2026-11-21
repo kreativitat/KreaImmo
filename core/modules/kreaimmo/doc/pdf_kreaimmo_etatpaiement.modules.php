@@ -213,9 +213,9 @@ class pdf_kreaimmo_etatpaiement extends ModelePDFKreaImmo
             $reshook=$hookmanager->executeHooks('beforePDFCreation',$parameters,$object,$action);    // Note that $action and $object may have been modified by some hooks
 */
             // Set nblignes with the new facture lines content after hook
-            //$nblignes = count($object->lines);
-            $nblignes = 0;
-            //$nbpayments = count($object->getListOfPayments()); TODO : add method
+            //$lineCount = count($object->lines);
+            $lineCount = 0;
+            //$paymentCount = count($object->getListOfPayments()); TODO : add method
 
             // Create pdf instance
             $pdf = pdf_getInstance($this->format);
@@ -235,7 +235,7 @@ class pdf_kreaimmo_etatpaiement extends ModelePDFKreaImmo
             }
 
             $pdf->Open();
-            $pagenb = 0;
+            $pageNumber = 0;
 
             if (method_exists($pdf, 'AliasNbPages')) $pdf->AliasNbPages();
 
@@ -254,7 +254,7 @@ class pdf_kreaimmo_etatpaiement extends ModelePDFKreaImmo
                 $pdf->AddPage();
                 if (!empty($tplidx)) $pdf->useTemplate($tplidx);
 
-                $pagenb++;
+                $pageNumber++;
                 $pdf->SetFillColor(224, 224, 224);
 
                 $curY = $this->_pagehead($pdf, $object, 1, $outputlangs);
@@ -265,7 +265,7 @@ class pdf_kreaimmo_etatpaiement extends ModelePDFKreaImmo
                 $posY = $curY;
                 $h = 10;
 
-                $rentpermage = 25;
+                $rentsPerPage = 25;
 
                 if ($resql) {
                     $num = $this->db->num_rows($resql);
@@ -275,7 +275,7 @@ class pdf_kreaimmo_etatpaiement extends ModelePDFKreaImmo
 
                         while ($obj = $this->db->fetch_object($resql)) {
                             $i++;
-                            if ($i > $rentpermage) {
+                            if ($i > $rentsPerPage) {
                                 $pdf->AddPage('', '', true);
                                 $posY = $this->_pagehead($pdf, $object, 1, $outputlangs);
                                 $i = 0;
@@ -333,22 +333,22 @@ class pdf_kreaimmo_etatpaiement extends ModelePDFKreaImmo
      *   Show table for lines
      *
      * @param PDF $pdf Object PDF
-     * @param string $tab_top Top position of table
-     * @param string $tab_height Height of table (rectangle)
+     * @param string $tableTop Top position of table
+     * @param string $tableHeight Height of table (rectangle)
      * @param int $nexY Y
      * @param Translate $outputlangs Langs object
      * @param int $hidetop Hide top bar of array
      * @param int $hidebottom Hide bottom bar of array
      * @return    void
      */
-    private function _tableau(&$pdf, $tab_top, $tab_height, $nexY, $outputlangs, $hidetop = 0, $hidebottom = 0)
+    private function _tableau(&$pdf, $tableTop, $tableHeight, $nexY, $outputlangs, $hidetop = 0, $hidebottom = 0)
     {
         global $conf;
 
         $default_font_size = pdf_getPDFFontSize($outputlangs);
 
         //title line
-        $pdf->RoundedRect($this->marge_gauche, $tab_top, $this->page_largeur - $this->marge_gauche - $this->marge_droite, $tab_height, $roundradius, $round_corner = '0110', 'S', $this->border_style, array());
+        $pdf->RoundedRect($this->marge_gauche, $tableTop, $this->page_largeur - $this->marge_gauche - $this->marge_droite, $tableHeight, $roundradius, $round_corner = '0110', 'S', $this->border_style, array());
 
         foreach ($this->cols as $colKey => $colDef) {
             if (!$this->getColumnStatus($colKey)) continue;
@@ -358,18 +358,18 @@ class pdf_kreaimmo_etatpaiement extends ModelePDFKreaImmo
 
             // Add column separator
             if (!empty($colDef['border-left'])) {
-                $pdf->line($colDef['xStartPos'], $tab_top, $colDef['xStartPos'], $tab_top + $tab_height);
+                $pdf->line($colDef['xStartPos'], $tableTop, $colDef['xStartPos'], $tableTop + $tableHeight);
             }
 
             if (empty($hidetop)) {
-                $pdf->SetXY($colDef['xStartPos'] + $colDef['title']['padding'][3], $tab_top - 8 + $colDef['title']['padding'][0]);
+                $pdf->SetXY($colDef['xStartPos'] + $colDef['title']['padding'][3], $tableTop - 8 + $colDef['title']['padding'][0]);
 
                 $textWidth = $colDef['width'] - $colDef['title']['padding'][3] - $colDef['title']['padding'][1];
-                $pdf->MultiCell($textWidth, $tab_height + 8, $colDef['title']['label'], '', $colDef['title']['align']);
+                $pdf->MultiCell($textWidth, $tableHeight + 8, $colDef['title']['label'], '', $colDef['title']['align']);
             }
         }
         // Output Rect
-        $this->printRect($pdf, $this->marge_gauche, $tab_top, $this->page_largeur - $this->marge_gauche - $this->marge_droite, $tab_height + 1, 0, 0);    // Rect prend une longueur en 3eme param et 4eme param
+        $this->printRect($pdf, $this->marge_gauche, $tableTop, $this->page_largeur - $this->marge_gauche - $this->marge_droite, $tableHeight + 1, 0, 0);    // Rect prend une longueur en 3eme param et 4eme param
     }
 
     /**
