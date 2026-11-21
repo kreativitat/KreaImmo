@@ -19,4 +19,24 @@ The JSON report and exit status distinguish passing and failing checks. REST che
 
 Display-label regressions verify payment lists, receipt-linked payments and property-linked receipt lists retain the synthetic property, renter and receipt labels through their English aliases. The linked queries also deny foreign-company resource IDs.
 
+Versioned real-estate API checks cover all nine resources: identical list/detail
+projections, native module and granular permissions, denial of external and
+unauthenticated users, exact-company ownership, parent-owned buildings/meters,
+supported and unsupported relationship filters, literal references, bounded
+sentinel pagination, malformed inputs and monetary database-string preservation.
+Synthetic parent corruption verifies that buildings and meters follow actual
+property ownership. These class-level checks do not replace HTTP route acceptance.
+
+Management checks exercise all nine resources against real native classes,
+including strict preview/apply projection parity, generated references, native
+zero-to-NULL amounts, stale create/replay denial, company/permission boundaries,
+unpaid receipt edits, payment partial/full/deleted summaries, explicit bank
+posting, posted-edit denial, reconciled-delete denial and native bank cleanup.
+Additional checks preserve restricted commercial renter visibility, native
+renter cancel/reopen identity, canonical company document paths, protected ref
+changes and suffixed ECM attachment identities. Management fixtures use a nested
+savepoint and roll back before the original fixture lifecycle checks continue.
+Native receipt and renter validation also run with distinct current-company and
+fallback output roots; synthetic other-company sentinels must remain untouched.
+
 Mailing checks reproduce native filename/class discovery, including inactive-company loading. Synthetic native drafts exercise recipient counts and persistence, tenant ownership, native recipient keys, duplicate retries and authorization/status/filter denial. Only recipient selection runs; no email is sent, no delivery is queued, and no native job is activated. Mailing drafts and recipients roll back with the fixture.

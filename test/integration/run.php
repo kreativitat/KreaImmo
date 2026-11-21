@@ -98,7 +98,7 @@ function qaUser($read = 1, $write = 1, $delete = 1)
 	$actor->admin = 0;
 	$actor->rights = new stdClass();
 	$actor->rights->kreaimmo = new stdClass();
-	foreach (array('owner', 'property', 'renter', 'rent', 'receipt', 'cost', 'compteur', 'payment') as $permission) {
+	foreach (array('owner', 'property', 'renter', 'rent', 'receipt', 'cost', 'compteur', 'immocompteur', 'payment') as $permission) {
 		$actor->rights->kreaimmo->$permission = (object) array('read' => $read, 'write' => $write, 'delete' => $delete);
 	}
 	$actor->rights->societe = (object) array('client' => (object) array('voir' => 1));
@@ -372,6 +372,402 @@ function qaAuxChain($entity)
 	$aux['spreadzone'] = qaCreate(qaNew('KreaImmoSpreadZone', array('fk_property_parent' => $parents['property']->id, 'fk_property_child' => $parents['property']->id, 'percent_application' => '50.25')));
 	$aux['compteur_cost'] = qaCreate(qaNew('KreaImmoCompteur_Cost', array('fk_immocompteur_type' => $parents['compteur']->compteur_type_id, 'cost_year' => 2026, 'amount' => '12.35')));
 	return $aux;
+}
+
+/** Exercise public real-estate evidence with synthetic native records only. */
+function qaRecordApiChecks(array $aux)
+{
+	global $conf, $fixtures;
+	$resources = array('owners' => array('owner', 'owner'), 'buildings' => array('building', 'property'),
+		'properties' => array('property', 'property'), 'renters' => array('renter', 'renter'),
+		'leases' => array('rent', 'rent'), 'receipts' => array('receipt', 'receipt'),
+		'payments' => array('payment', 'payment'), 'costs' => array('cost', 'cost'), 'meters' => array('compteur', 'immocompteur'));
+	$conf->entity = 2;
+	foreach ($resources as $resource => $definition) {
+		$kind = $definition[0];
+		$own = $kind === 'building' ? $aux[2][$kind] : $fixtures[2][$kind];
+		$foreign = $kind === 'building' ? $aux[3][$kind] : $fixtures[3][$kind];
+		qaCheck('record API '.$resource.' list/detail preserve company, projection and order', function () use ($resource, $own, $foreign) {
+			DolibarrApiAccess::$user = qaUser();
+			$api = new KreaImmoApi();
+			$list = $api->getRecords($resource);
+			qaAssert($list['schema'] === 'kreaimmo_records_v1' && $list['entity_id'] === 2 && $list['resource'] === $resource, 'Invalid list identity');
+			qaAssert($list['limit'] === 100 && $list['page'] === 0 && is_bool($list['has_more']) && (array) $list['filters'] === array(), 'Invalid pagination metadata');
+			$detail = $api->getRecord($resource, $own->id);
+			qaAssert($detail['schema'] === 'kreaimmo_record_v1' && $detail['entity_id'] === 2 && $detail['resource'] === $resource, 'Invalid detail identity');
+			$previous = 0;
+			$found = false;
+			foreach ($list['items'] as $record) {
+				qaAssert(is_int($record['id']) && $record['id'] > $previous && $record['entity'] === 2, 'Unordered, duplicate or foreign-company record');
+				qaAssert($record['id'] !== (int) $foreign->id, 'Foreign-company record leaked');
+				foreach (array('note_private', 'note_public', 'db', 'fields', 'array_options', 'birth', 'import_key') as $protected) {
+					qaAssert(!array_key_exists($protected, $record), 'Protected or internal field exposed');
+				}
+				$previous = $record['id'];
+				if ($record['id'] === (int) $own->id) {
+					qaAssert($detail['record'] === $record, 'List and detail projections differ');
+					$found = true;
+				}
+			}
+			qaAssert($found, 'Own synthetic record missing');
+			qaRestError(404, function () use ($api, $resource, $foreign) { $api->getRecord($resource, $foreign->id); });
+			$empty = $api->getRecords($resource, 200, 1000);
+			qaAssert($empty['items'] === array() && $empty['has_more'] === false, 'Empty page has incorrect continuation');
+		});
+		qaCheck('record API '.$resource.' filters bind exact native relationships', function () use ($resource, $own) {
+			DolibarrApiAccess::$user = qaUser();
+			$api = new KreaImmoApi();
+			$record = $api->getRecord($resource, $own->id)['record'];
+			$filters = array('ref' => 'ref', 'property_id' => $resource === 'meters' ? 'fk_immoproperty' : 'fk_property',
+				'renter_id' => 'fk_renter', 'lease_id' => 'fk_rent', 'owner_id' => 'fk_owner');
+			foreach ($filters as $name => $field) {
+				$args = array($resource, 100, 0, null, null, null, null, null);
+				$position = array('ref' => 3, 'property_id' => 4, 'renter_id' => 5, 'lease_id' => 6, 'owner_id' => 7);
+				$value = isset($record[$field]) && $record[$field] !== '' && $record[$field] !== 0 ? $record[$field] : ($name === 'ref' ? 'missing-reference' : 1);
+				$args[$position[$name]] = $value;
+				if (!array_key_exists($field, $record)) {
+					qaRestError(400, function () use ($api, $args) { call_user_func_array(array($api, 'getRecords'), $args); });
+					continue;
+				}
+				$list = call_user_func_array(array($api, 'getRecords'), $args);
+				qaAssert((array) $list['filters'] === array($name => $value), 'Applied filter metadata differs');
+				foreach ($list['items'] as $item) {
+					qaAssert($item[$field] === $value, 'Filter returned a mismatched native relationship');
+				}
+				if (isset($record[$field]) && $record[$field] !== '' && $record[$field] !== 0) {
+					qaAssert(in_array((int) $own->id, array_column($list['items'], 'id'), true), 'Matching filter omitted synthetic record');
+				}
+			}
+		});
+		qaCheck('record API '.$resource.' enforces grants and internal-user boundary', function () use ($resource, $definition, $own) {
+			$api = new KreaImmoApi();
+			DolibarrApiAccess::$user = qaUser(0, 0, 0);
+			qaRestError(403, function () use ($api, $resource) { $api->getRecords($resource); });
+			qaRestError(403, function () use ($api, $resource, $own) { $api->getRecord($resource, $own->id); });
+			DolibarrApiAccess::$user->rights->kreaimmo->{$definition[1]}->read = 1;
+			qaAssert($api->getRecord($resource, $own->id)['record']['id'] === (int) $own->id, 'Granular permission rejected');
+			DolibarrApiAccess::$user = qaUser(0, 0, 0);
+			DolibarrApiAccess::$user->rights->kreaimmo->read = 1;
+			qaAssert($api->getRecord($resource, $own->id)['record']['id'] === (int) $own->id, 'Module-wide permission rejected');
+			DolibarrApiAccess::$user->societe_id = 99;
+			qaRestError(403, function () use ($api, $resource) { $api->getRecords($resource); });
+			qaRestError(403, function () use ($api, $resource, $own) { $api->getRecord($resource, $own->id); });
+		});
+	}
+	qaCheck('record API validates pagination, references, IDs and resource names', function () {
+		DolibarrApiAccess::$user = qaUser();
+		$api = new KreaImmoApi();
+		foreach (array(0, 201, -1, '1 OR 1=1', true, 1.5) as $limit) {
+			qaRestError(400, function () use ($api, $limit) { $api->getRecords('owners', $limit); });
+		}
+		foreach (array(-1, 1001, '0 UNION SELECT 1', false, 1.5) as $page) {
+			qaRestError(400, function () use ($api, $page) { $api->getRecords('owners', 100, $page); });
+		}
+		foreach (array(0, -1, '1 OR 1=1', true, 1.5) as $id) {
+			qaRestError(400, function () use ($api, $id) { $api->getRecord('owners', $id); });
+			qaRestError(400, function () use ($api, $id) { $api->getRecords('leases', 100, 0, null, $id); });
+		}
+		foreach (array('', "bad\nref", str_repeat('a', 129), array('ref')) as $ref) {
+			qaRestError(400, function () use ($api, $ref) { $api->getRecords('owners', 100, 0, $ref); });
+		}
+		qaAssert($api->getRecords('owners', 100, 0, "' OR 1=1 --_%")['items'] === array(), 'Reference escaped out of exact matching');
+		qaRestError(400, function () use ($api) { $api->getRecords('../owners'); });
+		qaRestError(400, function () use ($api) { $api->getRecord('societe', 1); });
+	});
+	qaCheck('record API follows actual property ownership for buildings and meters', function () use ($aux, $fixtures) {
+		global $db;
+		DolibarrApiAccess::$user = qaUser();
+		$api = new KreaImmoApi();
+		foreach (array('buildings' => array($aux[2]['building'], 'fk_property'), 'meters' => array($fixtures[2]['compteur'], 'fk_immoproperty')) as $resource => $definition) {
+			$object = $definition[0];
+			$field = $definition[1];
+			$original = (int) $object->$field;
+			try {
+				// Deliberately corrupt this synthetic child to reproduce inherited legacy data.
+				qaQuery('UPDATE '.$db->prefix().$object->table_element.' SET '.$field.'='.(int) $fixtures[3]['property']->id.' WHERE rowid='.(int) $object->id);
+				qaRestError(404, function () use ($api, $resource, $object) { $api->getRecord($resource, $object->id); });
+				$list = $api->getRecords($resource);
+				qaAssert(!in_array((int) $object->id, array_column($list['items'], 'id'), true), 'Child leaked after parent changed companies');
+			} finally {
+				qaQuery('UPDATE '.$db->prefix().$object->table_element.' SET '.$field.'='.$original.' WHERE rowid='.(int) $object->id);
+			}
+		}
+	});
+	qaCheck('record API uses a sentinel for bounded continuation and preserves decimals', function () use ($fixtures) {
+		DolibarrApiAccess::$user = qaUser();
+		$extra = qaCreate(qaNew('KreaImmoRenter', array('lastname' => 'Pagination synthetic', 'civility_id' => 1)));
+		$api = new KreaImmoApi();
+		$first = $api->getRecords('renters', 1, 0);
+		$second = $api->getRecords('renters', 1, 1);
+		qaAssert(count($first['items']) === 1 && $first['has_more'] && count($second['items']) === 1 && $second['items'][0]['id'] > $first['items'][0]['id'], 'Sentinel pagination repeats or skips its boundary');
+		foreach (array('leases' => array('rent', 'rentamount'), 'receipts' => array('receipt', 'total_amount'), 'payments' => array('payment', 'amount'), 'costs' => array('cost', 'amount')) as $resource => $definition) {
+			$object = $fixtures[2][$definition[0]];
+			$field = $definition[1];
+			$record = $api->getRecord($resource, $object->id)['record'];
+			qaAssert(is_string($record[$field]) && $record[$field] === (string) qaRow($object)[$field], 'Database monetary string was reformatted');
+		}
+		global $user;
+		qaAssert($extra->delete($user, true) > 0, 'Cannot remove synthetic pagination renter');
+	});
+	qaCheck('record API rejects inactive module and unauthenticated access', function () {
+		global $conf;
+		$api = new KreaImmoApi();
+		DolibarrApiAccess::$user = null;
+		qaRestError(401, function () use ($api) { $api->getRecords('owners'); });
+		DolibarrApiAccess::$user = qaUser();
+		$modules = $conf->modules;
+		try {
+			unset($conf->modules['kreaimmo']);
+			qaRestError(403, function () use ($api) { $api->getRecords('owners'); });
+		} finally {
+			$conf->modules = $modules;
+		}
+		DolibarrApiAccess::$user = qaUser();
+	});
+}
+
+/** Preview/apply one synthetic operation and verify its public projection parity. */
+function qaManagementApply($resource, array $request)
+{
+	$request['confirm'] = true;
+	$request['dry_run'] = true;
+	$preview = (new KreaImmoApi())->manageRecord($resource, $request);
+	qaAssert($preview['schema'] === 'kreaimmo_management_v1' && $preview['status'] === 'dry_run' && $preview['currency'] === 'EUR', 'Invalid management preview');
+	qaAssert((bool) preg_match('/^[a-f0-9]{64}$/D', $preview['expected_hash']), 'Preview hash is missing');
+	$request['dry_run'] = false;
+	$request['expected_hash'] = $preview['expected_hash'];
+	$result = (new KreaImmoApi())->manageRecord($resource, $request);
+	qaAssert(in_array($result['status'], array('confirmed', 'unchanged'), true), 'Management did not confirm native execution');
+	if ($result['after'] !== null) {
+		$expected = $preview['after'];
+		$expected['id'] = $result['record_id'];
+		if (array_key_exists('ref', $expected) && $expected['ref'] === null) {
+			$expected['ref'] = $result['after']['ref'];
+		}
+		if ($request['operation'] === 'post_bank') {
+			$expected['fk_bank'] = $result['after']['fk_bank'];
+		}
+		qaAssert($expected === $result['after'], 'Native result differs from preview for '.$resource.': '.json_encode(array('expected' => $expected, 'actual' => $result['after'])));
+	}
+	qaAssert($preview['effects'] === $result['effects'], 'Related receipt effect differs from preview');
+	return $result;
+}
+
+/** Management checks use the same disposable transaction and native fixtures. */
+function qaManagementChecks()
+{
+	global $db, $conf, $user, $fixtures, $run, $now;
+	require_once DOL_DOCUMENT_ROOT.'/compta/bank/class/account.class.php';
+	$conf->entity = 2;
+	DolibarrApiAccess::$user = qaUser();
+	qaQuery('SAVEPOINT kreaimmo_management_checks');
+	try {
+		$parent = $fixtures[2];
+		$fields = array(
+			'owners' => array('firstname' => 'Synthetic', 'lastname' => 'Management synthetic owner', 'email' => 'management@example.invalid', 'ref' => $run.'-MO'),
+			'buildings' => array('label' => 'Management synthetic building', 'fk_property' => (int) $parent['property']->id),
+			'properties' => array('label' => 'Management synthetic property', 'property_type_id' => (int) $parent['property']->property_type_id, 'fk_owner' => (int) $parent['owner']->id, 'datebuilt' => 1, 'target' => 1),
+			'renters' => array('lastname' => 'Management synthetic renter', 'ref' => $run.'-MR'),
+			'leases' => array('fk_property' => (int) $parent['property']->id, 'fk_owner' => (int) $parent['owner']->id, 'fk_renter' => (int) $parent['renter']->id, 'rentamount' => '100.00', 'chargesamount' => '0.00', 'date_start' => '2026-11-01'),
+			'receipts' => array('fk_rent' => (int) $parent['rent']->id, 'label' => 'Management synthetic receipt', 'ref' => $run.'-RC', 'rentamount' => '100.00', 'chargesamount' => '0.00', 'date_start' => '2026-11-01', 'date_end' => '2026-11-30', 'date_echeance' => '2026-11-20'),
+			'costs' => array('label' => 'Management synthetic cost', 'ref' => $run.'-MC', 'fk_property' => (int) $parent['property']->id, 'amount' => '100.00', 'amount_ht' => '100.00', 'amount_vat' => '0.00', 'date_start' => '2026-11-01', 'date_end' => '2026-11-30'),
+			'meters' => array('label' => 'Management synthetic meter', 'compteur_type_id' => (int) $parent['compteur']->compteur_type_id, 'date_relever' => '2026-11-20', 'qty' => '10.5', 'fk_immoproperty' => (int) $parent['property']->id),
+		);
+		foreach ($fields as $resource => $input) {
+			qaCheck('management '.$resource.' previews, creates, updates and deletes natively', function () use ($resource, $input) {
+				DolibarrApiAccess::$user = qaUser();
+				$result = qaManagementApply($resource, array('operation' => 'create', 'fields' => $input));
+				$id = $result['record_id'];
+				$update = in_array($resource, array('owners', 'renters'), true) ? array('lastname' => 'Management edited') : ($resource === 'leases' ? array('rentamount' => '150.00') : array('label' => 'Management edited'));
+				if ($resource === 'receipts') {
+					$update['rentamount'] = '150.00';
+				}
+				$result = qaManagementApply($resource, array('operation' => 'update', 'record_id' => $id, 'fields' => $update));
+				if ($resource === 'receipts') {
+					qaAssert($result['after']['balance'] === '150.00000000' && $result['after']['partial_payment'] === null && $result['after']['paye'] === 0, 'Unpaid edited receipt did not recompute its native summary');
+				}
+				qaManagementApply($resource, array('operation' => 'delete', 'record_id' => $id, 'fields' => array()));
+				qaRestError(404, function () use ($resource, $id) { (new KreaImmoApi())->getRecord($resource, $id); });
+			});
+		}
+		qaCheck('management stale previews, replays, permission and field guards fail closed', function () use ($fixtures) {
+			DolibarrApiAccess::$user = qaUser();
+			$request = array('operation' => 'create', 'fields' => array('lastname' => 'Guarded synthetic'), 'confirm' => true, 'dry_run' => true);
+			$preview = (new KreaImmoApi())->manageRecord('renters', $request);
+			$request['dry_run'] = false;
+			$request['expected_hash'] = $preview['expected_hash'];
+			$result = (new KreaImmoApi())->manageRecord('renters', $request);
+			qaRestError(409, function () use ($request) { (new KreaImmoApi())->manageRecord('renters', $request); });
+			$changed = $request;
+			$changed['fields']['lastname'] = 'Changed binding';
+			qaRestError(409, function () use ($changed) { (new KreaImmoApi())->manageRecord('renters', $changed); });
+			qaRestError(400, function () { (new KreaImmoApi())->manageRecord('renters', array('operation' => 'create', 'fields' => array('lastname' => 'Denied', 'entity' => 3), 'confirm' => true)); });
+			qaRestError(400, function () { (new KreaImmoApi())->manageRecord('payments', array('operation' => 'create', 'fields' => array('amount' => '0.001'), 'confirm' => true)); });
+			qaRestError(404, function () use ($fixtures) { (new KreaImmoApi())->manageRecord('owners', array('operation' => 'update', 'record_id' => (int) $fixtures[3]['owner']->id, 'fields' => array('lastname' => 'Denied'), 'confirm' => true)); });
+			qaRestError(409, function () use ($fixtures, $result) { (new KreaImmoApi())->manageRecord('leases', array('operation' => 'update', 'record_id' => (int) $fixtures[2]['rent']->id, 'fields' => array('fk_renter' => (int) $result['record_id']), 'confirm' => true)); });
+			DolibarrApiAccess::$user = qaUser(1, 0, 0);
+			qaRestError(403, function () { (new KreaImmoApi())->manageRecord('renters', array('operation' => 'create', 'fields' => array('lastname' => 'Denied'), 'confirm' => true)); });
+			DolibarrApiAccess::$user = qaUser();
+			qaManagementApply('renters', array('operation' => 'delete', 'record_id' => $result['record_id'], 'fields' => array()));
+		});
+		qaCheck('management payments maintain receipt summaries and explicit native bank lifecycle', function () use ($parent, $run, $now) {
+			global $db, $user;
+			DolibarrApiAccess::$user = qaUser();
+			DolibarrApiAccess::$user->rights->banque = (object) array('lire' => 1, 'modifier' => 1);
+			qaQuery("INSERT INTO ".MAIN_DB_PREFIX."c_paiement(entity,code,libelle,type,active) VALUES (2,'QA_MGT','Synthetic management transfer',2,1)");
+			$methodId = (int) $db->last_insert_id(MAIN_DB_PREFIX.'c_paiement');
+			$receiptFields = array('fk_rent' => (int) $parent['rent']->id, 'label' => 'Management payment receipt', 'ref' => $run.'-PAY', 'rentamount' => '100.00', 'chargesamount' => '0.00', 'date_start' => '2026-11-01', 'date_end' => '2026-11-30', 'date_echeance' => '2026-11-20');
+			$receipt = qaManagementApply('receipts', array('operation' => 'create', 'fields' => $receiptFields));
+			$receiptId = $receipt['record_id'];
+			qaManagementApply('receipts', array('operation' => 'validate', 'record_id' => $receiptId, 'fields' => array()));
+			$paymentFields = array('fk_receipt' => $receiptId, 'amount' => '25.00', 'date_payment' => '2026-11-20', 'fk_mode_reglement' => $methodId, 'num_payment' => 'Synthetic management');
+			$payment = qaManagementApply('payments', array('operation' => 'create', 'fields' => $paymentFields));
+			$id = $payment['record_id'];
+			qaAssert($payment['effects'][0]['after']['balance'] === '75.00000000' && $payment['effects'][0]['after']['paye'] === 2, 'Partial payment summary is incorrect');
+			$payment = qaManagementApply('payments', array('operation' => 'update', 'record_id' => $id, 'fields' => array('amount' => '100.00')));
+			qaAssert($payment['effects'][0]['after']['balance'] === null && $payment['effects'][0]['after']['paye'] === 1, 'Paid receipt summary is incorrect');
+			qaRestError(409, function () use ($paymentFields) { (new KreaImmoApi())->manageRecord('payments', array('operation' => 'create', 'fields' => $paymentFields, 'confirm' => true)); });
+			$account = new Account($db);
+			$account->ref = substr($run, 0, 8).'-MGT';
+			$account->label = 'Synthetic management bank';
+			$account->country_id = 1;
+			$account->currency_code = 'EUR';
+			$account->date_solde = $now;
+			$account->balance = 0;
+			$account->type = Account::TYPE_CURRENT;
+			$account->clos = 0;
+			$account->status = 0;
+			qaAssert($account->create($user, true) > 0, 'Cannot create synthetic management bank account: '.$account->error);
+			$posted = qaManagementApply('payments', array('operation' => 'post_bank', 'record_id' => $id, 'fields' => array('fk_account' => (int) $account->id)));
+			qaAssert($posted['after']['fk_account'] === (int) $account->id && $posted['after']['fk_bank'] > 0, 'Explicit bank posting did not retain distinct account/line IDs');
+			qaRestError(409, function () use ($id) { (new KreaImmoApi())->manageRecord('payments', array('operation' => 'update', 'record_id' => $id, 'fields' => array('amount' => '20.00'), 'confirm' => true)); });
+			qaQuery('UPDATE '.MAIN_DB_PREFIX.'bank SET rappro=1 WHERE rowid='.(int) $posted['after']['fk_bank']);
+			qaRestError(409, function () use ($id) { (new KreaImmoApi())->manageRecord('payments', array('operation' => 'delete', 'record_id' => $id, 'fields' => array(), 'confirm' => true)); });
+			qaQuery('UPDATE '.MAIN_DB_PREFIX.'bank SET rappro=0 WHERE rowid='.(int) $posted['after']['fk_bank']);
+			$deleted = qaManagementApply('payments', array('operation' => 'delete', 'record_id' => $id, 'fields' => array()));
+			qaAssert($deleted['effects'][0]['after']['partial_payment'] === null && $deleted['effects'][0]['after']['balance'] === '100.00000000' && $deleted['effects'][0]['after']['paye'] === 0, 'Payment deletion did not restore unpaid native summary');
+			qaAssert($db->num_rows(qaQuery('SELECT rowid FROM '.MAIN_DB_PREFIX.'bank WHERE rowid='.(int) $posted['after']['fk_bank'])) === 0, 'Native payment deletion left bank evidence behind');
+		});
+		qaCheck('record API and management preserve restricted commercial assignments', function () use ($parent) {
+			global $db;
+			$id = (int) $parent['renter']->id;
+			$record = (new KreaImmoApi())->getRecord('renters', $id)['record'];
+			$companyId = (int) $record['fk_soc'];
+			qaAssert($companyId > 0, 'Synthetic renter lacks its existing third-party fixture');
+			DolibarrApiAccess::$user = qaUser();
+			DolibarrApiAccess::$user->rights->societe->client->voir = 0;
+			$api = new KreaImmoApi();
+			qaRestError(404, function () use ($api, $id) { $api->getRecord('renters', $id); });
+			qaRestError(404, function () use ($api, $id) { $api->manageRecord('renters', array('operation' => 'update', 'record_id' => $id, 'fields' => array('lastname' => 'Denied'), 'confirm' => true)); });
+			qaRestError(403, function () use ($api, $companyId) { $api->manageRecord('renters', array('operation' => 'create', 'fields' => array('lastname' => 'Denied', 'fk_soc' => $companyId), 'confirm' => true)); });
+			qaAssert($api->getRecords('renters', 100, 0, $record['ref'])['items'] === array(), 'Unassigned renter leaked through a list');
+			qaQuery('INSERT INTO '.MAIN_DB_PREFIX.'societe_commerciaux(fk_soc,fk_user) VALUES ('.$companyId.',1)');
+			try {
+				qaAssert($api->getRecord('renters', $id)['record']['id'] === $id, 'Assigned commercial reader cannot read renter');
+				qaAssert(count($api->getRecords('renters', 100, 0, $record['ref'])['items']) === 1, 'Assigned commercial reader cannot list renter');
+				$preview = $api->manageRecord('renters', array('operation' => 'update', 'record_id' => $id, 'fields' => array('lastname' => 'Assigned synthetic'), 'confirm' => true));
+				qaAssert($preview['after']['lastname'] === 'Assigned synthetic', 'Assigned commercial reader cannot preview own renter edit');
+			} finally {
+				qaQuery('DELETE FROM '.MAIN_DB_PREFIX.'societe_commerciaux WHERE fk_soc='.$companyId.' AND fk_user=1');
+				DolibarrApiAccess::$user = qaUser();
+			}
+		});
+		qaCheck('management renter cancellation and reopening retain native identity', function () {
+			DolibarrApiAccess::$user = qaUser();
+			$renter = qaManagementApply('renters', array('operation' => 'create', 'fields' => array('lastname' => 'Lifecycle synthetic')));
+			$id = $renter['record_id'];
+			qaRestError(409, function () use ($id) { (new KreaImmoApi())->manageRecord('renters', array('operation' => 'set_status', 'record_id' => $id, 'fields' => array('status' => 9), 'confirm' => true)); });
+			$active = qaManagementApply('renters', array('operation' => 'set_status', 'record_id' => $id, 'fields' => array('status' => 1)));
+			$closed = qaManagementApply('renters', array('operation' => 'set_status', 'record_id' => $id, 'fields' => array('status' => 9)));
+			$reopened = qaManagementApply('renters', array('operation' => 'set_status', 'record_id' => $id, 'fields' => array('status' => 1)));
+			qaAssert($closed['after']['status'] === 9 && $reopened['after']['status'] === 1 && $reopened['after']['ref'] === $active['after']['ref'], 'Native renter reopen renumbered or failed its state transition');
+			qaManagementApply('renters', array('operation' => 'delete', 'record_id' => $id, 'fields' => array()));
+		});
+		qaCheck('management protects canonical company files, ref changes and suffixed ECM records', function () use ($parent, $run) {
+			global $conf, $db;
+			DolibarrApiAccess::$user = qaUser();
+			$originalDirectories = isset($conf->kreaimmo->multidir_output) ? $conf->kreaimmo->multidir_output : null;
+			$directory = DOL_DATA_ROOT.'/management-files-'.$run;
+			$files = array();
+			try {
+				$conf->kreaimmo->multidir_output[2] = $directory;
+				$owner = qaManagementApply('owners', array('operation' => 'create', 'fields' => array('firstname' => 'Synthetic', 'lastname' => 'Document owner', 'email' => 'document@example.invalid', 'ref' => $run.'-DOC')));
+				$ownerFile = $directory.'/owner/'.$owner['after']['ref'].'/synthetic.txt';
+				dol_mkdir(dirname($ownerFile));
+				qaAssert(file_put_contents($ownerFile, 'Synthetic attachment preservation fixture') !== false, 'Cannot prepare synthetic owner attachment');
+				$files[] = $ownerFile;
+				$ownerId = $owner['record_id'];
+				qaRestError(409, function () use ($ownerId) { (new KreaImmoApi())->manageRecord('owners', array('operation' => 'delete', 'record_id' => $ownerId, 'fields' => array(), 'confirm' => true)); });
+				qaRestError(409, function () use ($ownerId, $run) { (new KreaImmoApi())->manageRecord('owners', array('operation' => 'update', 'record_id' => $ownerId, 'fields' => array('ref' => $run.'-MOVED'), 'confirm' => true)); });
+				qaAssert((new KreaImmoApi())->getRecord('owners', $ownerId)['record']['ref'] === $owner['after']['ref'] && is_file($ownerFile), 'Denied ref edit changed owner identity or attachment');
+				$receipt = qaManagementApply('receipts', array('operation' => 'create', 'fields' => array('fk_rent' => (int) $parent['rent']->id, 'label' => 'Document receipt', 'ref' => $run.'-RCDOC', 'rentamount' => '100.00', 'chargesamount' => '0.00', 'date_start' => '2026-11-01', 'date_end' => '2026-11-30', 'date_echeance' => '2026-11-20')));
+				$receiptFile = $directory.'/receipt/'.$receipt['after']['ref'].'/synthetic.txt';
+				dol_mkdir(dirname($receiptFile));
+				qaAssert(file_put_contents($receiptFile, 'Synthetic receipt attachment') !== false, 'Cannot prepare synthetic receipt attachment');
+				$files[] = $receiptFile;
+				$receiptId = $receipt['record_id'];
+				qaRestError(409, function () use ($receiptId) { (new KreaImmoApi())->manageRecord('receipts', array('operation' => 'validate', 'record_id' => $receiptId, 'fields' => array(), 'confirm' => true)); });
+				qaAssert((new KreaImmoApi())->getRecord('receipts', $receiptId)['record'] === $receipt['after'] && is_file($receiptFile) && file_get_contents($receiptFile) === 'Synthetic receipt attachment', 'Document-bearing receipt validation changed state or files');
+				$building = qaManagementApply('buildings', array('operation' => 'create', 'fields' => array('label' => 'Document building', 'fk_property' => (int) $parent['property']->id)));
+				$buildingId = $building['record_id'];
+				qaQuery("INSERT INTO ".MAIN_DB_PREFIX."ecm_files(label,entity,filepath,filename,src_object_type,src_object_id) VALUES ('Synthetic building attachment',2,'kreaimmo/building','synthetic.txt','kreaimmo_building@kreaimmo',".$buildingId.')');
+				qaRestError(409, function () use ($buildingId) { (new KreaImmoApi())->manageRecord('buildings', array('operation' => 'delete', 'record_id' => $buildingId, 'fields' => array(), 'confirm' => true)); });
+				qaAssert((new KreaImmoApi())->getRecord('buildings', $buildingId)['record']['id'] === $buildingId, 'Suffixed ECM attachment failed to protect building');
+			} finally {
+				foreach ($files as $file) {
+					dol_delete_file($file);
+				}
+				if ($originalDirectories === null) {
+					unset($conf->kreaimmo->multidir_output);
+				} else {
+					$conf->kreaimmo->multidir_output = $originalDirectories;
+				}
+				DolibarrApiAccess::$user = qaUser();
+			}
+		});
+		qaCheck('native validation preserves another company document root', function () use ($parent, $run) {
+			global $conf;
+			DolibarrApiAccess::$user = qaUser();
+			$originalOutput = $conf->kreaimmo->dir_output;
+			$originalDirectories = isset($conf->kreaimmo->multidir_output) ? $conf->kreaimmo->multidir_output : null;
+			$selectedRoot = DOL_DATA_ROOT.'/validation-selected-'.$run;
+			$otherRoot = DOL_DATA_ROOT.'/validation-other-'.$run;
+			$files = array();
+			try {
+				$conf->kreaimmo->dir_output = $otherRoot;
+				$conf->kreaimmo->multidir_output[2] = $selectedRoot;
+				$receipt = qaManagementApply('receipts', array('operation' => 'create', 'fields' => array('fk_rent' => (int) $parent['rent']->id, 'label' => 'Native root receipt', 'rentamount' => '100.00', 'chargesamount' => '0.00', 'date_start' => '2026-11-01', 'date_end' => '2026-11-30', 'date_echeance' => '2026-11-20')));
+				$receiptSentinel = $otherRoot.'/immoreceipt/'.dol_sanitizeFileName($receipt['after']['ref']).'/sentinel.txt';
+				dol_mkdir(dirname($receiptSentinel));
+				qaAssert(file_put_contents($receiptSentinel, 'Synthetic other-company receipt') !== false, 'Cannot create receipt root sentinel');
+				$files[] = $receiptSentinel;
+				qaManagementApply('receipts', array('operation' => 'validate', 'record_id' => $receipt['record_id'], 'fields' => array()));
+				qaAssert(is_file($receiptSentinel) && file_get_contents($receiptSentinel) === 'Synthetic other-company receipt', 'Receipt validation touched another company document root');
+				$renter = qaManagementApply('renters', array('operation' => 'create', 'fields' => array('lastname' => 'Native root renter')));
+				$renterSentinel = $otherRoot.'/immorenter/'.dol_sanitizeFileName($renter['after']['ref']).'/sentinel.txt';
+				dol_mkdir(dirname($renterSentinel));
+				qaAssert(file_put_contents($renterSentinel, 'Synthetic other-company renter') !== false, 'Cannot create renter root sentinel');
+				$files[] = $renterSentinel;
+				qaManagementApply('renters', array('operation' => 'set_status', 'record_id' => $renter['record_id'], 'fields' => array('status' => 1)));
+				qaAssert(is_file($renterSentinel) && file_get_contents($renterSentinel) === 'Synthetic other-company renter', 'Renter validation touched another company document root');
+			} finally {
+				foreach ($files as $file) {
+					dol_delete_file($file);
+				}
+				$conf->kreaimmo->dir_output = $originalOutput;
+				if ($originalDirectories === null) {
+					unset($conf->kreaimmo->multidir_output);
+				} else {
+					$conf->kreaimmo->multidir_output = $originalDirectories;
+				}
+				DolibarrApiAccess::$user = qaUser();
+			}
+		});
+	} finally {
+		qaQuery('ROLLBACK TO SAVEPOINT kreaimmo_management_checks');
+		qaQuery('RELEASE SAVEPOINT kreaimmo_management_checks');
+		DolibarrApiAccess::$user = qaUser();
+	}
 }
 
 qaCheck('descriptor uses registered module and permission IDs', function () {
@@ -804,6 +1200,8 @@ try {
 		$conf->entity = 2;
 		$user = qaUser();
 		if (isset($aux[2], $aux[3])) {
+			qaRecordApiChecks($aux);
+			qaManagementChecks();
 			foreach (array('owner_type' => 'label', 'cost_type' => 'label', 'building' => 'label', 'cost_detail' => 'amount', 'spreadzone' => 'percent_application', 'compteur_cost' => 'amount') as $kind => $field) {
 				qaCheck($kind.' CRUD and inherited company isolation', function () use ($aux, $kind, $field) {
 					global $db, $user;

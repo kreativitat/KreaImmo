@@ -2,6 +2,27 @@
 
 Validation date: 2026-11-21. Module version: 1.0.2, module ID 156571.
 
+## API and MCP management acceptance — 2026-11-21
+
+The unreleased API extension passed **159/159 standalone native checks** on
+Dolibarr 24.0.2, PHP 8.2.35 and MariaDB 11.4.13, plus PHP syntax checks for
+177 files. Coverage includes nine-resource reads and native CRUD, hash-bound
+previews, monetary/date/default parity, tenant/company permissions, receipt
+summaries, native bank posting, generated references, tenant reopening and
+document preservation in the selected company.
+
+The companion KreaMCP bridge passed **54/54 cross-language checks**, using an
+actual MCP session and loopback HTTP to this module's PHP API classes. Synthetic
+business/bank fixtures were rolled back and their original row counts verified.
+Installed Restler route parsing also verified the new read/management routes,
+protected access metadata and JSON-body binding, while preserving the legacy
+renter route. The full Dolibarr HTTP authentication middleware, concurrent native
+requests and production deployment remain **UNVERIFIED** by these checks.
+
+Installer packaging includes the new API service and API guide. This source
+acceptance does not create a release, deploy the module, grant production
+permissions or authorize live business writes.
+
 99 standalone checks pass from a clean installation, including installation/replay of all 39 tables, company-scoped hook registration, and per-company cost defaults with replay preservation.
 
 ## Runtime and isolation

@@ -10,6 +10,7 @@ KreaImmo helps property managers handle their rental portfolio inside Dolibarr. 
 - **Costs and reporting:** property costs, charge allocation and financial result views.
 - **Utilities:** meters, readings and related costs.
 - **Tenant access:** an optional authenticated portal for linked tenants, with separate permissions for submitting meter readings.
+- **API and MCP:** company-scoped reads and preview-first management for the portfolio, leases, receipts, payments, costs and meters, with matching KreaMCP tools.
 - **Languages:** English, European Portuguese, French and German translations.
 
 ## Requirements
@@ -40,6 +41,18 @@ The installation creates KreaImmo's own tables and reference dictionaries. It do
 Open the KreaImmo home page at `/custom/kreaimmo/kreaimmoindex.php`. Business records are scoped to the active company; users need permission for each operation.
 
 The tenant portal is optional and must be enabled separately. Each tenant signs in with a linked external Dolibarr account; the portal is not anonymous public access.
+
+## API integrations
+
+Enable Dolibarr's API module and assign the intended KreaImmo read permissions to
+an internal API user. The `/api/index.php/kreaimmoapi/records/{resource}` routes
+provide bounded lists and individual records across nine resource types. KreaMCP
+uses these routes through `list_kreaimmo_records` and `get_kreaimmo_record`.
+`POST /manage/{resource}` and `manage_kreaimmo_record` add confirmed, hash-bound
+create/update/delete and native status workflows. Payment management updates
+receipt summaries atomically; bank posting requires its own explicit operation
+and native permissions. See the [API reference](doc/API.md) for authentication,
+company selection, editable fields, preview safeguards and existing renter routes.
 
 ## Development
 

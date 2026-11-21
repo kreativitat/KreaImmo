@@ -855,6 +855,12 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 
 		global $conf, $langs;
 
+		$documentRoot = getMultidirOutput($this, 'kreaimmo');
+		if (!is_string($documentRoot) || strpos($documentRoot, 'error-') === 0) {
+			$this->error = 'KreaImmoCompanyDocumentRootUnavailable';
+			return -1;
+		}
+
 		require_once DOL_DOCUMENT_ROOT . '/core/lib/files.lib.php';
 
 		$error = 0;
@@ -910,7 +916,7 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 		// Trigger calls
 		if (!$error && !$notrigger) {
 			// Call trigger
-			//$result = $this->call_trigger('IMMORECEIPT_VALIDATE', $user);
+			$result = $this->call_trigger('IMMORECEIPT_VALIDATE', $user);
 			if ($result < 0) {
 				$error++;
 			}
@@ -933,8 +939,8 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 				// We rename directory ($this->ref = old ref, $num = new ref) in order not to lose the attachments
 				$oldref = dol_sanitizeFileName($this->ref);
 				$newref = dol_sanitizeFileName($num);
-				$dirsource = $conf->kreaimmo->dir_output . '/immoreceipt/' . $oldref;
-				$dirdest = $conf->kreaimmo->dir_output . '/immoreceipt/' . $newref;
+				$dirsource = $documentRoot . '/immoreceipt/' . $oldref;
+				$dirdest = $documentRoot . '/immoreceipt/' . $newref;
 
 				if (!$error && file_exists($dirsource)) {
 					dol_syslog(get_class($this) . "::validate() rename dir " . $dirsource . " into " . $dirdest);
@@ -942,7 +948,7 @@ class KreaImmoReceipt extends CommonObjectKreaImmo
 					if (@rename($dirsource, $dirdest)) {
 						dol_syslog("Rename ok");
 						// Rename docs starting with $oldref with $newref
-						$listoffiles = dol_dir_list($conf->kreaimmo->dir_output . '/immoreceipt/' . $newref, 'files', 1, '^' . preg_quote($oldref, '/'));
+						$listoffiles = dol_dir_list($documentRoot . '/immoreceipt/' . $newref, 'files', 1, '^' . preg_quote($oldref, '/'));
 						foreach ($listoffiles as $fileentry) {
 							$dirsource = $fileentry['name'];
 							$dirdest = preg_replace('/^' . preg_quote($oldref, '/') . '/', $newref, $dirsource);
