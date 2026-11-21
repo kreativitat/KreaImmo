@@ -272,14 +272,33 @@ html.kreaimmo-page .inputsearch {
 		width: 100%;
 		max-width: none;
 	}
-}
 
-@media (max-width: 480px) {
+	html.kreaimmo-page .tableforfieldcreate,
+	html.kreaimmo-page .tableforfieldcreate > tbody,
 	html.kreaimmo-page .tableforfieldcreate > tbody > tr,
 	html.kreaimmo-page .tableforfieldcreate > tbody > tr > td {
 		display: block;
 		width: 100%;
 		min-width: 0;
+		max-width: 100%;
+		box-sizing: border-box;
+	}
+
+	/* Native selectors and editors can retain widths measured from desktop content. */
+	html.kreaimmo-page .tableforfieldcreate .select2-container,
+	html.kreaimmo-page .tableforfieldcreate .cke:not(.cke_maximized) {
+		width: 100% !important;
+		min-width: 0 !important;
+		max-width: 100%;
+		box-sizing: border-box;
+	}
+
+	html.kreaimmo-page .tableforfieldcreate .cke:not(.cke_maximized) .cke_inner,
+	html.kreaimmo-page .tableforfieldcreate .cke:not(.cke_maximized) .cke_contents,
+	html.kreaimmo-page .tableforfieldcreate .cke:not(.cke_maximized) .cke_contents iframe {
+		width: 100% !important;
+		min-width: 0;
+		max-width: 100%;
 		box-sizing: border-box;
 	}
 

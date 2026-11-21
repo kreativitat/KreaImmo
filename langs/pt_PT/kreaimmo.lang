@@ -21,6 +21,7 @@
 ModuleKreaImmoName = KreaImmo
 # Module description 'ModuleKreaImmoDesc'
 ModuleKreaImmoDesc = Solução para profissionais imobiliários
+Inactive = Inativo
 
 #
 # Admin page

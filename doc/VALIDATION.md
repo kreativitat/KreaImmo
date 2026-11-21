@@ -1,6 +1,6 @@
 # KreaImmo validation
 
-Validation date: 2026-11-21. Module version: 1.0.0, module ID 156571.
+Validation date: 2026-11-21. Module version: 1.0.1, module ID 156571.
 
 99 standalone checks pass from a clean installation, including installation/replay of all 39 tables, company-scoped hook registration, and per-company cost defaults with replay preservation.
 
@@ -29,3 +29,5 @@ Tests use Dolibarr 24.0.2, PHP 8.2.35 and MariaDB 11.4.13 in disposable containe
 The declared Dolibarr 19/PHP 7.4 minimums are not a separately executed compatibility matrix. Browser inspection samples the dashboard and creation forms; it does not automate every possible field combination or third-party theme. The optional external tenant portal is not exercised end to end; its inherited meter submission expects configured meter type ID 1. External services and real bank operations are not exercised. Concurrent bank requests, visual PDF layout and full lease PDF generation remain unverified. Source publication does not deploy or activate the module in any ERP company.
 
 Module-specific paths, tables, classes, helpers, constants, object identities, document models, menus and assets use KreaImmo identifiers. Existing contributor copyright and license notices are retained. Disabling the module retains its tables and business records; rollback must preserve database and documents. Keep automatic jobs disabled in test installations.
+
+Production acceptance also covers native company activation, installed source hashes, shared reference availability, read-only renter API access, and rich-text/dropdown form sizing. No production business record was created as a test.
