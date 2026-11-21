@@ -158,7 +158,7 @@ try {
 }
 $tables = kreaimmoFixtureQuery("SHOW TABLES LIKE 'llx\\_kreaimmo\\_%'");
 $version = $db->fetch_object(kreaimmoFixtureQuery('SELECT VERSION() AS version'));
-$kreaimmoIntegrationBootstrap = array('core_table_ddl' => $coreCount, 'clean_install' => $cleanInstall, 'module_install' => $firstInstall, 'module_replay' => $replayInstall, 'module_tables' => count($expectedTables), 'business_tables' => $db->num_rows($tables), 'dictionary_tables' => count($expectedTables) - $db->num_rows($tables), 'preserved_existing_record' => true, 'database_server' => $version->version);
+$kreaimmoIntegrationBootstrap = array('core_table_ddl' => $coreCount, 'clean_install' => $cleanInstall, 'installation_entity' => (int) $conf->entity, 'module_install' => $firstInstall, 'module_replay' => $replayInstall, 'module_tables' => count($expectedTables), 'business_tables' => $db->num_rows($tables), 'dictionary_tables' => count($expectedTables) - $db->num_rows($tables), 'preserved_existing_record' => true, 'database_server' => $version->version);
 $user->getrights('kreaimmo', 1);
 $conf->kreaimmo->dir_output = DOL_DATA_ROOT.'/kreaimmo';
 $conf->kreaimmo->multidir_output = array(1 => DOL_DATA_ROOT.'/1/kreaimmo', 2 => DOL_DATA_ROOT.'/2/kreaimmo', 3 => DOL_DATA_ROOT.'/3/kreaimmo');

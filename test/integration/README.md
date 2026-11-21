@@ -4,6 +4,8 @@
 
 Prepare a **disposable**, isolated MariaDB server with no existing business data and an empty root password. The bundled `bootstrap.php` connects to `127.0.0.1:3306`, creates only `kreaimmo_clean`, loads native core table DDL, and performs native module activation plus schema replay around a synthetic preservation record. It never loads `conf.php`. Module activation metadata is reset through Dolibarr's native removal method before activation; its tables and records are retained. Core prerequisite indexes and core seed/business data are not imported. The JSON distinguishes a fresh module installation from replay on an existing fixture.
 
+Installation checks require all 18 default cost types in the active company, exactly one copy of each default, and no cost types in entity 1 on a clean installation in entity 2. Hook registration must belong to the active company, with no entity-0 hook constant. A transactional replay check customizes one cost-type label, runs the native seed loader twice, verifies the entire cost-type table remains unchanged by replay, and rolls the customization back. This seed check contains no DDL, so the savepoint can restore its fixture.
+
 ```sh
 KREAIMMO_TEST_ALLOW_WRITES=1 \
 php test/integration/run.php

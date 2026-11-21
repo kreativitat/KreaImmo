@@ -2,6 +2,8 @@
 
 Validation date: 2026-11-21. Module version: 1.0.0, module ID 156571.
 
+99 standalone checks pass from a clean installation, including installation/replay of all 39 tables, company-scoped hook registration, and per-company cost defaults with replay preservation.
+
 ## Runtime and isolation
 
 **96/96 standalone integration checks passed**, including a clean installation, schema replay, retained sentinel records and all 39 expected module tables.

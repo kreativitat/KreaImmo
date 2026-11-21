@@ -125,8 +125,7 @@ class modKreaImmo extends DolibarrModules
 					'globalcard',
 					'elementproperties',
 					'all'
-				),
-				'entity' => '0'
+				)
 			)
 			// Set here all hooks context managed by module. To find available hook context, make a "grep -r '>initHooks(' *" on source code. You can also set hook context 'all'
 		);

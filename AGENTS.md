@@ -12,6 +12,7 @@ KreaImmo is a GPL-3.0-or-later external Dolibarr real-estate module. Preserve ex
 - Company-owned records use the current company. Child records inherit ownership through their parent; references must belong to the permitted company. Shared `c_kreaimmo_*` reference values may use entity 0. Rent indices and renter-type dictionaries have no entity column. Native third parties and bank accounts follow Dolibarr sharing rules.
 - `CommonObjectKreaImmo` guards ownership at object boundaries; page and API entry points enforce operation permissions. Preserve both checks.
 - Payments keep bank account IDs in `fk_account` and bank line IDs in `fk_bank`; never interchange them.
+- Hook registration is company-scoped. Company cost-type defaults use native `__ENTITY__` and `(entity, ref)` replay checks; never seed business dictionaries into a fixed company.
 - SQL installation and repeatable upgrades live under `sql/`, executed by the native module installer. Preserve existing data. No automatic jobs are registered.
 - Tests use only a disposable database and synthetic fixtures. See `test/integration/README.md` and `doc/VALIDATION.md`. Never run the fixture against an ERP database or enable scheduled jobs as a test.
 - Package with `php build/buildzip.php`; output is `/tmp/module_kreaimmo-<version>.zip`. Do not publish local configuration, credentials, documents, logs or business data.

@@ -139,6 +139,17 @@ function qaDecimal($expected, $actual, $description)
 	qaAssert(number_format((float) $expected, 2, '.', '') === number_format((float) $actual, 2, '.', ''), $description.': expected '.$expected.', received '.var_export($actual, true));
 }
 
+function qaCostTypeSnapshot()
+{
+	global $db;
+	$result = qaQuery('SELECT * FROM '.MAIN_DB_PREFIX.'kreaimmo_immocost_type ORDER BY rowid');
+	$rows = array();
+	while ($row = $db->fetch_array($result)) {
+		$rows[] = $row;
+	}
+	return $rows;
+}
+
 function qaRestError($status, callable $action)
 {
 	try {
@@ -206,6 +217,36 @@ if (isset($kreaimmoIntegrationBootstrap)) {
 		qaAssert($kreaimmoIntegrationBootstrap['module_tables'] >= 18 && $kreaimmoIntegrationBootstrap['preserved_existing_record'], 'Schema replay failed to preserve synthetic record');
 	});
 }
+qaCheck('installation seeds all 18 cost types only in the active company', function () {
+	global $db, $conf, $kreaimmoIntegrationBootstrap;
+	$refs = array();
+	for ($number = 1; $number <= 18; $number++) {
+		$refs[] = "'COSTTYPE".sprintf('%03d', $number)."'";
+	}
+	$result = qaQuery('SELECT ref, COUNT(*) AS total FROM '.MAIN_DB_PREFIX.'kreaimmo_immocost_type WHERE entity='.(int) $conf->entity.' AND ref IN ('.implode(',', $refs).') GROUP BY ref');
+	qaAssert($db->num_rows($result) === 18, 'The active company does not have all 18 default cost types');
+	while ($row = $db->fetch_object($result)) {
+		qaAssert((int) $row->total === 1, 'Duplicate active-company seed: '.$row->ref);
+	}
+	if (!empty($kreaimmoIntegrationBootstrap['clean_install'])) {
+		$row = $db->fetch_object(qaQuery('SELECT COUNT(*) AS total FROM '.MAIN_DB_PREFIX.'kreaimmo_immocost_type WHERE entity=1'));
+		qaAssert((int) $row->total === 0, 'Clean installation leaked cost types into entity 1');
+	}
+});
+qaCheck('installation registers hooks in the active company without global hooks', function () {
+	global $db, $conf;
+	$result = qaQuery("SELECT entity, value FROM ".MAIN_DB_PREFIX."const WHERE name='MAIN_MODULE_KREAIMMO_HOOKS'");
+	$current = 0;
+	while ($row = $db->fetch_object($result)) {
+		qaAssert((int) $row->entity !== 0, 'Module hooks were registered globally');
+		if ((int) $row->entity === (int) $conf->entity) {
+			$current++;
+			$contexts = json_decode($row->value, true);
+			qaAssert(is_array($contexts) && in_array('elementproperties', $contexts, true) && in_array('all', $contexts, true), 'Current-company hook contexts were not installed');
+		}
+	}
+	qaAssert($current === 1, 'Expected exactly one current-company hook registration');
+});
 qaCheck('element hook resolves module aliases and preserves native object mappings', function () {
 	global $db, $hookmanager;
 	$hook = new ActionsKreaImmo($db);
@@ -238,6 +279,25 @@ foreach (array('immoowner', 'immoproperty', 'immorenter', 'immorent', 'immorecei
 }
 qaAssert($db->begin('KreaImmo synthetic integration suite') > 0, 'Cannot begin fixture transaction');
 try {
+	qaCheck('seed replay preserves customized labels without duplicates and rolls back', function () {
+		global $db, $conf;
+		$original = qaCostTypeSnapshot();
+		$row = $db->fetch_object(qaQuery("SELECT rowid FROM ".MAIN_DB_PREFIX."kreaimmo_immocost_type WHERE entity=".(int) $conf->entity." AND ref='COSTTYPE001'"));
+		qaAssert((bool) $row, 'Cannot customize a missing current-company seed');
+		qaQuery('SAVEPOINT kreaimmo_qa_seed_replay');
+		try {
+			qaQuery("UPDATE ".MAIN_DB_PREFIX."kreaimmo_immocost_type SET label='Synthetic customized cost type' WHERE rowid=".(int) $row->rowid);
+			$customized = qaCostTypeSnapshot();
+			for ($attempt = 0; $attempt < 2; $attempt++) {
+				qaAssert(run_sql(dirname(__DIR__, 2).'/sql/data.sql', 1, (int) $conf->entity, 0) > 0, 'Native seed replay failed');
+				qaAssert(qaCostTypeSnapshot() === $customized, 'Seed replay overwrote a customized row, added duplicates, or changed another company');
+			}
+		} finally {
+			qaQuery('ROLLBACK TO SAVEPOINT kreaimmo_qa_seed_replay');
+			qaQuery('RELEASE SAVEPOINT kreaimmo_qa_seed_replay');
+		}
+		qaAssert(qaCostTypeSnapshot() === $original, 'Seed-replay fixture rollback did not restore the original rows');
+	});
 	qaCheck('entity 2 complete synthetic object chain creates without warnings', function () { qaChain(2); });
 	qaCheck('entity 3 complete synthetic object chain creates without warnings', function () { qaChain(3); });
 	if (isset($fixtures[2], $fixtures[3])) {
