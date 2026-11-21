@@ -1,0 +1,22 @@
+stages:
+  - test
+  - build
+
+php_syntax:
+  image: php:8.2-cli
+  stage: test
+  script:
+    - find . -name '*.php' -not -path './includes/*' -print0 | xargs -0 -n1 php -l
+
+module_archive:
+  image: php:8.2-cli
+  stage: build
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends libzip-dev
+    - docker-php-ext-install zip
+  script:
+    - sh ci.sh
+    - cp /tmp/module_*.zip .
+  artifacts:
+    paths:
+      - module_*.zip

@@ -1,0 +1,388 @@
+# Copyright (C) 2018-2021 Philippe GRAND
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see .
+
+#
+# Generisch
+#
+
+# Module label 'ModuleKreaImmoName'
+ModuleKreaImmoName = KreaImmo
+# Module description 'ModuleKreaImmoDesc'
+ModuleKreaImmoDesc = Lösung für Immobilienprofis
+
+#
+# Administrator Seite
+#
+KreaImmoSetup = Konfigurieren des KreaImmo-Moduls
+Settings = Einstellungen
+KreaImmoSetupPage = Konfigurationsseite des KreaImmo-Moduls
+KreaImmoNumberingModeles = Nummerierungsmodell für die Quittung
+TemplatePDFKreaImmo = Dokumentvorlagen für Quittungen und Mietverträge
+WatermarkOnDraftImmoCards = Wasserzeichen auf Belegentwürfen (keine, wenn leer)
+PublicSite=Öffentliche Webseite
+EnablePublicSite = Öffentlich zugängliche Website aktivieren
+PublicSiteDesc = Dolibarr kann eine öffentliche Seiten-URL anbieten, um eine Website anzuzeigen, auf der Immobilienanzeigen für externe Besucher aufgelistet werden.
+KREAIMMO_USE_GOOGLE = Verwenden Sie Google mit dem KreaImmo-Modul
+GoogleZoomLevel = Standard-Zoomniveau (1 bis 10)
+GOOGLE_API_SERVERKEY=API-Schlüssel (vom Typ „Serverschlüssel“)
+ParametersForGoogleAPIv3Usage=Für Google-API %s V3
+KeepEmptyYoUsePublicQuotaOfAPI=Leer lassen, um das öffentliche Kontingent dieser API zu verwenden (ansonsten kann der Schlüssel von der Seite https://code.google.com/apis/console/, „API-Zugriff“ erstellt werden, um einen „Serverschlüssel“ und „Dienste“ zu erstellen) um die API „%s“ zu aktivieren)
+AllowGoogleToLoginWithKey=Um die Kontingente Ihres eigenen Google-Kontos zu nutzen, müssen Sie einen Schlüssel von der Seite <a href="%s" target="_blank">%s</a>, Menü "API & Authentifizierung" -> "Identifikation" erstellen. . Klicken Sie auf „Schlüssel erstellen“ und wählen Sie „Serverschlüssel“ und dann „Erstellen“. Sie erhalten Ihren Serverschlüssel.
+EnableAPI=Außerdem müssen Sie APIs für Ihr Google-Konto aktivieren. Gehen Sie dazu auf die Seite <a href="%s" target="_blank">%s</a>, Menü "API & Authentifizierung" -> "API". Klicken Sie auf API für „%s“ aktivieren.
+KreaImmoEnablePublicInterface = Eine öffentliche Schnittstelle, die keine Identifizierung erfordert, ist unter der folgenden URL verfügbar:
+KreaImmoPublicAccess = Öffentliche Schnittstelle aktivieren
+KreaImmoEmailMustExist = Zum Erstellen eines Tickets ist eine bestehende E-Mail-Adresse erforderlich
+KreaImmoEmailMustExistHelp = Um auf das Frontend zuzugreifen und ein neues Ticket zu erstellen, muss Ihr Konto bereits vorhanden sein.
+KreaImmoShowCompanyLogo = Firmenlogo im Frontend anzeigen
+KreaImmoShowCompanyLogoHelp = Aktivieren Sie diese Option, um das Firmenlogo auf Frontend-Seiten auszublenden
+KreaImmoPublicInterfaceForbidden = Öffentliche Schnittstelle für Tickets wurde nicht aktiviert
+ExtraFieldsProperty = Zusätzliche Attribute (Eigenschaften)
+ExtraFieldsRenter = Zusätzliche Attribute (Mandanten)
+ExtraFieldsOwner = Zusätzliche Attribute (Besitzer)
+ExtraFieldsPayment = Zusätzliche Attribute (Zahlungen)
+ExtraFieldsReceipt = Zusätzliche Attribute (Belege)
+ExtraFieldsRent = Zusätzliche Attribute (Standorte)
+EnumerationOfPartsAndCommonEquipment=Liste der gemeinsamen Teile und Ausrüstung.
+KreaImmoEquipementGardiennage=Bewachung
+KreaImmoEquipementInterphone=Gegensprechanlage
+KreaImmoEquipementAscenseur=Aufzug
+KreaImmoEquipementVideOrdures=Müllschlucker
+KreaImmoEquipementAntenneTVcollective=Gemeinsame Fernsehantenne
+KreaImmoEquipementEspacesverts=Grünfläche(n)
+KreaImmoEquipementChauffageCollectif=Zentralheitzung
+KreaImmoEquipementEauChaudeCollective=Kollektives Warmwasser
+
+#
+# Über Seite
+#
+About = Informationsseite
+KreaImmoAbout = Über KreaImmo
+KreaImmoAboutPage = Seite über KreaImmo
+
+#
+# Menu
+#
+ImmoProperties = Immobilien
+MenuImmoProperty = Immobilie
+MenuNewImmoProperty = Neue Immobilie
+MenuListImmoProperty = Liste
+MenuImmoPropertyType = Art der Immobilie
+MenuNewImmoPropertyType = Neue Art
+MenuListImmoPropertyType = Liste
+MenuImmoRent = Vermietung
+MenuNewImmoRent = Neue Vermietung
+MenuListImmoRent = Liste
+MenuImmoOwner = Besitzer
+MenuNewImmoOwner = Neuer Besitzer
+MenuListImmoOwner = Liste
+MenuImmoOwnerType = Art von Besitzer
+MenuNewImmoOwnerType = Neue Besitzerart
+MenuListImmoOwnerType = Liste
+MenuImmoRenter = Mieter
+MenuNewImmoRenter = Neuer Mieter
+MenuListImmoRenter = Liste
+MenuImmoRenterStats = Zahlungsstatistik
+MenuImmoPayment = Zahlungen
+MenuNewImmoPayment = Neue Zahlung
+MenuListImmoPayment = Liste
+MenuListImmoPaymentStats=Zahlungsstatistik
+MenuListImmoReceipt = Quittungen
+MenuNewImmoReceipt = Neue Quittung
+MenuAllReceiptperContract = Quittungen generieren
+MenuValidateReceipt = Zahlungen validieren
+MenuListImmoReceiptStats = Mietstatistik
+MenuListImmoCost = Mietkosten
+MenuNewImmoCost = Neue Mietgebühr
+MenuRenterCost = Mieter kosten
+MenuStatisticsCost = Kosten: Statistiken nach Typ
+MenuStatisticsCostFourn = Kosten: Statistiken vom Lieferanten
+MenuStatisticsResult = Ergebnisse: Statistiken
+MenuListImmoCostType = Kostenarten
+MenuNewImmoCostType = Neue Kostenart
+MenuImmoCompteurStats=Verbrauchsstatistik
+
+#
+# Immobilien
+#
+KreaImmoProperty_Type = Immobilienart
+PropertyParent = Hauptimmobilie
+APA = Wohnung
+HOU = Individuelles Haus
+LOC = Gewerbebauten
+SHO = Geschäft
+GAR = Garage
+BUL = Gebäude
+Juridique = Rechtsordnung des Gebäudes
+Copropriete = Gemeinschaftseigentum
+MonoPropriete = Einzeleigentum
+DateBuilt = Baujahr
+DateBuilt1 = vor 1949
+DateBuilt2 = von 1949 bis 1974
+DateBuilt3 = von 1975 bis 1989
+DateBuilt4 = von 1989 bis 2005
+DateBuilt5 = seit 2005
+Target = Ziel
+Building = Gebäude
+Staircase = Treppe
+NumFloor = Stockwerk
+NumFlat = Wohnungsnummer
+NumDoor = Türnummer
+Area = Wohnraum
+NumberOfRoom = Anzahl der Haupträume
+ObligationsOfTheSeller = Pflichten des Verkäufers
+ObligationsOfTheLessor = Pflichten des Vermieters
+DeleteImmoProperty = Entfernung der Immobilie
+ConfirmDeleteImmoProperty = Möchten Sie diese Immobilie wirklich löschen?
+CloneImmoProperty = Klonen Sie die Immobilie
+ConfirmCloneImmoProperty = Möchten Sie dieses Immobilie wirklich klonen?
+MenuImmoLotFiscal=Steuersatz
+MenuListImmoLotFiscal=Liste
+KreaImmoCompteur = Zähler
+KreaImmoProperty = Immobilie
+ImmoCompteurs = Zähler
+DeleteImmoCompteur = Zähler löschen
+CloneImmoCompteur = Zähler klonen
+ImmoCompteurDateStatement = Datum der Erklärung
+ImmoCompteurStatement = Erklärung
+ImmoCompteurNbDays = Nb Jours
+ImmoCompteurConsumption = Verbrauch
+ImmoCompteurDailyConsumption = Täglicher Verbrauch
+ImmoCompteurMonthlyConsumption = Monatlicher Verbrauch
+ImmoCompteurYearlyConsumption = Jährlicher Verbrauch
+
+#
+# Eigentümer
+#
+KreaImmoOwner = Eigentümer
+LinkToOwnerType = Bezieht sich auf den Eigentümertyp
+RefOwner = Eigentümerreferenz
+LinkToOwner = Mit Eigentümer verknüpft
+OwnerName = Name des Besitzers
+DeleteImmoOwner = Eigentümer entfernen
+ConfirmDeleteImmoOwner = Möchten Sie diesen Eigentümer wirklich löschen?
+CloneImmoOwner = Den Eigentümer klonen
+ConfirmCloneImmoOwner = Möchten Sie diesen Eigentümer wirklich klonen?
+DeleteImmoOwner_Type = Löschung des Eigentümertyps
+ConfirmDeleteImmoOwner_Type = Möchten Sie diesen Eigentümertyp wirklich löschen?
+
+#
+# Mieten
+#
+ListOfRents = Liste der Vermietungen
+ImmorentType = Art der Vermietung
+EmptyHousing = Leeres Haus
+FurnishedApartment = Mobilierte Wohnung
+RentAmount = Höhe der Miete
+ChargesAmount = Höhe der Gebühren
+TotalAmount = Gesamtsumme
+Deposit = Kaution
+Encours = Im Gange
+ImmoRentNoticePeriod = Vorankündigung
+date_end = Endtermin
+DateNextRent = Nächster Mietzahlungstermin
+DateLastRegul = Letztes Regulierungsdatum
+DeleteImmoRent = Löschung der Vermietung
+ConfirmDeleteImmoRent = Möchten Sie diese Vermietung wirklich löschen?
+CloneImmoRent = Klonen der Vermietung
+ConfirmCloneImmoRent = Möchten Sie diese Vermietung wirklich klonen?
+
+#
+# Mieter
+#
+KreaImmoRenter = Mieter
+RenterName = Name des Mieters
+DeleteImmoRenter = Löschung des Mieters
+ConfirmDeleteImmoRenter = Möchten Sie diesen Mieter wirklich löschen?
+CloneImmoRenter = Klonen des Mieters
+ConfirmCloneImmoRenter = Möchten Sie diesen Mieter wirklich klonen?
+
+#
+# Quittungen
+#
+KreaImmoCost = Quittung
+ImmoReceipts = Quittungen
+KreaImmoReceipt = Quittung
+UnPaidReceipt = Unbezahlte Quittung
+PaidReceipt = Bezahlte Quittung
+PartiallyPaidReceipt = Eingang teilweise beglichen
+NomLoyer = Bezeichnung der Quittung
+Paye = Erledigte Quittung
+ValidateReceipt = Validierung der Quittung
+Quittances&Baux = Quittungen und Pachtverträge
+OtherReceipts = Andere Quittungen
+SendImmoReceiptRef = Sendebestätigung %s
+ReceiptPaymentsAdded = Quittungszahlung hinzugefügt
+ConfirmValidateReceipt = Bestätigen Sie die Validierung der Quittung %s
+NumberReceiptByMonth = Anzahl der Belege pro Monat
+CustomerReceiptPayment = Zahlung der Quittung
+DeleteImmoReceipt = Löschung der Quittung
+ConfirmDeleteImmoReceipt = Möchten Sie diese Quittung wirklich löschen?
+CloneImmoReceipt = Klonen der Quittung
+ConfirmCloneImmoReceipt = Möchten Sie diese Quittung wirklich klonen?
+
+#
+# Andere
+#
+BienPrincipal = Hauptvermögen
+BirthDay = Geburtsdatum
+BirthCountry = Geburtsort
+Property = Immobilie
+Properties = Immobilien
+ImmoProperties = Immobilien
+ImmoRents = Mieten
+KreaImmoRent = Miete
+ImmoRenters = Mieter
+ImmoCosts = Mietkosten
+ImmoCostType = Arten von Kosten
+ImmoPayments = Zahlungen
+KreaImmoPayment = Zahlung
+DateStartRent = Datum des Inkrafttretens des Vertrages
+TypePayment = Abrechnungsart
+NumPayment = <em>Nummer (Scheck-/Überweisungsnummer)</em>
+CheckTransmitter = <em>Aussteller (Scheck-/Überweisungsnummer)</em>
+ChequeBank = <em>Bank (Scheckbank)</em>
+NewImmoPropertyType = Neue Art von Eigentum
+PropertyTypeStatusActive=Immobilie aktiviert
+PropertyTypeStatusCancel=Immobilie deaktiviert
+BuiltDate = Baudatum
+Civility = Titel
+Renter = Mieter
+RenterCost = Kosten/Mieter
+VatAmount = Mehrwertsteuerbetrag
+HtAmount = Betrag ohne MwSt
+VatTx = MwSt.-Satz
+ImmoUnpaid = Unbezahlt
+ImmoPaid = Bezahlt
+PartialPayment = Teilzahlung
+OtherProperties = Andere Immobilien
+DeleteImmoPayment = Zahlung entfernen
+ConfirmDeleteImmoPayment = Möchten Sie diese Zahlung wirklich entfernen?
+TheTechnicalDiagnosticFileDDT = Die technische Diagnosedatei (DDT)
+KreaImmoDiagnosticElectricityInstallation = der Zustand der elektrischen Inneninstallation
+KreaImmoDiagnosticGasInstallation = der Zustand der Indoor-„Erd“-Gasinstallation
+KreaImmoDiagnosticLeadExposure = die Aussage über das Risiko einer Exposition gegenüber Blei (CREP)
+KreaImmoDiagnosticContainingAsbestos = die Erklärung über das Vorhandensein oder Nichtvorhandensein von Materialien oder Produkten, die Asbest enthalten
+KreaImmoDiagnosticContainingTermites = der Zustand in Bezug auf das Vorhandensein von Termiten im Gebäude
+KreaImmoDiagnosticNaturalTechnologicalRisks = der Stand der natürlichen und technologischen Risiken
+KreaImmoDiagnosticNonCollectiveSanitationFacilities = der Zustand der nicht kollektiven sanitären Einrichtungen
+KreaImmoDiagnosticEnergyPerformanceDiagnosis = Gebäudeenergieleistungsdiagnose (DPE)
+Echeance = Termin
+Periode_du = Zeitraum von
+Periode_au = Zeitraum bis
+Nomlocal = Name des Anwesens
+OtherRents = Andere Vermietungen
+CreatePDF = PDF erzeugen
+MenuImmoCompteur =Zähler
+MenuNewImmoCompteur = Neuer Zähler
+MenuImmoCompteurList = Zählerliste
+ImmoBirthCountry = Heimatland
+LotFiscal = Steuersatz
+ImmoBuildings = Steuersatz
+LinkToThirdparty = Mit Drittanbieter verknüpfen
+LinkToProperty = Mit Immobilie verknüpfen
+LinkToRenter = Mit Mieter verknüpfen
+LinkToAccount = Verknüpfung zum Konto im Bankmodul | Kassa.
+LinkToRent = Mit Vermietung verknüpfen
+CostType = Art der Kosten
+bytes = Bytes
+Payed = Bezahlt
+Create = Erzeugen
+PaymentMode = Zahlungsmethode
+Contract = Vertrag
+ShowMandataireDetails = Agentendetails anzeigen
+ShowColocataireDetails = Mitbewohnerdetails anzeigen
+
+# Menu
+MenuDictionarie=Admin. - Wörterbuch
+DictionaryDescExtra=Admin. - Wörterbuch
+
+# Objects
+KreaImmoIndice=Index
+
+# Extra Fields
+ExtraFieldsProperty = Zusätzliche Felder (Immobilien)
+ExtraFieldsRenter = Zusätzliche Felder (Mieter)
+ExtraFieldsOwner = Zusätzliche Felder (Eigentümer)
+ExtraFieldsPayment = Zusätzliche Felder (Zahlungen)
+ExtraFieldsReceipt = Zusätzliche Felder (Quittungen)
+ExtraFieldsRent = Zusätzliche Felder (Mieten)
+
+# Admin translations
+Configuration=Konfiguration
+kreaimmo_etatpaiement=Zahlungsstatus
+FreeLegalTextOnReceipts=Freier Rechtstext auf Quittungen
+TypeCostForAdjust=Kostenanpassung
+TypeCostForRenterProperty=Immobilien-Mietkosten-Typ (Mieterkosten-Bericht)
+TypeCostForRenterRenter=Mieterkosten-Typ (Mieterkosten-Bericht)
+MandataireRepresentation=falls zutreffend, vertreten durch den Makler
+
+# Property translations
+GoogleMapsAddressNotFound=Adresse nicht auf Google Maps gefunden
+
+# Property field labels
+UISectioncadastrale=Katasterabschnitt
+UIParcellecadastrale=Katasterparzelle
+UINumPrmEdf=EDF PRM-Nummer
+UINumLigneNet=Internet-Leitungsnummer
+
+# Meter readings
+ImmoCompteurDtFirst=Datum der ersten Ablesung
+ImmoCompteurDtFirstValue=Zählerwert bei der ersten Ablesung
+ImmoCompteurDtLast=Datum der letzten Ablesung
+ImmoCompteurDtLastValue=Zählerwert bei der letzten Ablesung
+ImmoCompteurDiff=Zählerdifferenz zwischen erster und letzter
+ImmoCompteurDtDiff=Anzahl Tage zwischen erster und letzter Ablesung
+
+# Meter costs interface
+ListOfImmoCompteurCosts=Liste der Zählerkosten
+TechnicalID=Technische ID
+Year=Jahr
+Amount=Betrag
+Status=Status
+ImmoCompteur_Costs=Zählerkosten
+MyFilter=Mein Filter
+CompteurType=Zählertyp
+ImmoCompteurType=Zählertyp
+ImmoCompteurTypeInfo=Zählertyp (Wasser, Gas, andere...) im Wörterbuch erstellt
+UIIndiceX=Index %d
+UICalcIndice=Neue Miete wird sein (Aktuelle Miete * Index 1) / Index 2
+UIRevalIndice=Index-Neubewertung
+DateLastRegulCharge=Datum der letzten Gebührenanpassung
+Payed=Bezahlt
+ImmoCostChargesReelLocataireProperty=Echte Mieterkosten nach Immobilie
+ImmoCostChargesReelLocataireRenter=Echte Mieterkosten nach Mieter
+ImmoSpreadCost=Kostenverteilung
+OwnerLastName=Nachname des Eigentümers
+OwnerFirstName=Vorname des Eigentümers
+MissingConfigurationTypeCostForAdjust=Fehlende Konfiguration TypeCostForAdjust
+ImmoReceipts=Quittungen
+MenuNewImmoReceipt=Neue Quittung
+
+# Dashboard translations
+KreaImmoDashboard=KreaImmo Dashboard
+Proprietários=Eigentümer
+MenuImmoActiveOwner=Aktive Eigentümer
+MenuImmoNotActiveOwner=Inaktive Eigentümer
+IMOBILIÁRIO=IMMOBILIEN
+ImmoActiveProperties=Aktive Immobilien
+ImmoNotActiveProperties=Inaktive Immobilien
+ARRENDAMENTOS=MIETEN
+MenuImmoActiveRent=Aktive Mieten
+MenuImmoNotActiveRent=Inaktive Mieten
+INQUILINOS=MIETER
+MenuImmoActiveRenter=Aktive Mieter
+MenuImmoNotActiveRenter=Inaktive Mieter
+
+KreaImmoAccessDenied=Zugriff für diese Mandanteneinheit oder den verknüpften Datensatz verweigert.

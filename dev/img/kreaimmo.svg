@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">KreaImmo</title>
+  <path d="M7 29 32 8l25 21" fill="none" stroke="#f47b20" stroke-linecap="round" stroke-linejoin="round" stroke-width="7"/>
+  <path d="M15 29v26h14V40h10v15h10V29" fill="none" stroke="#252525" stroke-linecap="round" stroke-linejoin="round" stroke-width="5"/>
+  <path d="M45 12v10" stroke="#f47b20" stroke-linecap="round" stroke-width="5"/>
+</svg>

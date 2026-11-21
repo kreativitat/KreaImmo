@@ -1,0 +1,13 @@
+# Generated packages, dependency caches and local validation state
+/bin/
+/build/*.zip
+/vendor/
+/doc/user/build/
+/test/integration/.runtime/
+/.claude/
+/private/
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
