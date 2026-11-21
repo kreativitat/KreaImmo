@@ -23,6 +23,27 @@ Installer packaging includes the new API service and API guide. This source
 acceptance does not create a release, deploy the module, grant production
 permissions or authorize live business writes.
 
+## Production API acceptance — 2026-11-21
+
+KreaImmo **1.1.1** was deployed from `471e616` with all **301** packaged files
+verified on Dolibarr **24.0.3 / PHP 8.1.34**. Source and a complete database backup
+were retained and verified before the atomic source switch. No schema migration
+was needed. All **177** PHP files passed PHP 8.1 syntax checks; the native suite
+passed **161 checks**, including omitted/typed REST query validation and native
+Swagger return serialization.
+
+Authenticated production REST reads passed for all nine resources and available
+record details. Native API documentation refresh and default management previews
+passed. The preview reference remained absent, and confirmation/field/company
+denials passed. All **29** business-table snapshots, existing activation and
+permission grants remained unchanged. A missing current-company native API cache
+directory was created through Dolibarr's helper.
+
+The companion KreaMCP **5.3.0** reports 87 approved tools on one discovery page;
+its resource reads and management previews passed. Native business writes,
+concurrent native requests and offline external-client reconnection remain
+**UNVERIFIED**. Production acceptance created no business or bank records.
+
 99 standalone checks pass from a clean installation, including installation/replay of all 39 tables, company-scoped hook registration, and per-company cost defaults with replay preservation.
 
 ## Runtime and isolation
