@@ -1,5 +1,8 @@
 # KreaImmo API and MCP integration
 
+The versioned portfolio and management contracts are available from KreaImmo
+1.1.0, with KreaMCP 5.3.0 providing the matching MCP tools.
+
 KreaImmo provides authenticated REST resources through Dolibarr's native API at
 `/api/index.php/kreaimmoapi`. Enable Dolibarr's API module and KreaImmo in each
 intended company, then use an API account with the corresponding KreaImmo read

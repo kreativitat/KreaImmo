@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [1.1.0] - 2026-11-21
+
 - Add authenticated, exact-company read APIs for owners, buildings, properties,
   renters, leases, receipts, payments, costs and meters, with matching KreaMCP
   contracts, fixed public projections, native permissions and bounded pagination.
